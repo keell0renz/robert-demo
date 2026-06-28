@@ -1,0 +1,117 @@
+/* ============================================================================
+   macOS DESIGN TOKENS — the design intelligence. The agent never touches any
+   of this; it only composes primitives, and the primitives read these vars.
+   Values reconciled against the macOS HIG / macOS 26 spec (light = reference,
+   dark = deltas). Scoped to `.os-root` so the chat shell keeps its own styling.
+   ============================================================================ */
+
+.os-root {
+  /* Typography — SF stack; 13px body is most of the "macOS feel". */
+  --os-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Inter", system-ui, sans-serif;
+
+  /* Accent — ONE token, themeable (blue default; swap to purple/red/etc). */
+  --os-accent: #007aff;
+  --os-accent-text: #ffffff;
+  --os-accent-soft: rgba(0, 122, 255, 0.85); /* selected-row fill */
+
+  /* Label hierarchy */
+  --os-text: rgba(0, 0, 0, 0.85);
+  --os-text-secondary: rgba(0, 0, 0, 0.5);
+  --os-text-tertiary: rgba(0, 0, 0, 0.26);
+
+  /* Surfaces */
+  --os-window-bg: #ececec;
+  --os-content-bg: #ffffff;
+  --os-grouped-bg: #ffffff;
+  --os-control-bg: #ffffff;
+  --os-hairline: rgba(0, 0, 0, 0.1);
+  --os-fill-soft: rgba(0, 0, 0, 0.05); /* hover / segmented track */
+
+  /* Vibrancy surface (sidebars/menus). Pair: a solid base + a glass overlay
+     that *falls back* to solid when transparency is reduced. macOS-ness is
+     chrome + metrics + SF font, NOT the blur — so blur is never load-bearing. */
+  --os-surface-solid: #f6f6f6;
+  --os-surface-glass: rgba(246, 246, 246, 0.72);
+  --os-glass-blur: blur(20px) saturate(180%);
+
+  /* Traffic lights — FIXED, never themed. */
+  --os-tl-red: #ff5f57;
+  --os-tl-yellow: #febc2e;
+  --os-tl-green: #28c840;
+
+  /* Semantic */
+  --os-red: #ff3b30;
+  --os-green: #34c759;
+  --os-orange: #ff9500;
+  --os-yellow: #ffcc00;
+
+  /* Radii — 6px control is the workhorse. */
+  --os-radius-window: 12px;
+  --os-radius-card: 10px;
+  --os-radius-control: 6px;
+  --os-radius-pill: 999px;
+
+  /* Elevation — the hairline ring matters as much as the blur. */
+  --os-shadow-window: 0 22px 70px rgba(0, 0, 0, 0.25), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  --os-shadow-floating: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  --os-shadow-button: inset 0 0.5px 0 rgba(255, 255, 255, 0.4), 0 0.5px 1px rgba(0, 0, 0, 0.1);
+
+  /* The desktop behind a window. */
+  --os-wallpaper: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .os-root {
+    --os-text: rgba(255, 255, 255, 0.85);
+    --os-text-secondary: rgba(255, 255, 255, 0.55);
+    --os-text-tertiary: rgba(255, 255, 255, 0.25);
+    --os-accent: #0a84ff;
+    --os-accent-soft: rgba(10, 132, 255, 0.85);
+
+    --os-window-bg: #262626;
+    --os-content-bg: #1e1e1e;
+    --os-grouped-bg: #2a2a2a;
+    --os-control-bg: #2f2f2f;
+    --os-hairline: rgba(255, 255, 255, 0.1);
+    --os-fill-soft: rgba(255, 255, 255, 0.07);
+
+    --os-surface-solid: #282828;
+    --os-surface-glass: rgba(40, 40, 40, 0.6);
+
+    --os-red: #ff453a;
+    --os-green: #30d158;
+    --os-orange: #ff9f0a;
+    --os-yellow: #ffd60a;
+
+    --os-shadow-window: 0 22px 70px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+    --os-shadow-floating: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+    --os-wallpaper: linear-gradient(135deg, #2b3a55 0%, #44318d 100%);
+  }
+}
+
+/* Accessibility: "Reduce transparency" strips glass to opaque. The UI still
+   reads as macOS because chrome + metrics + font carry it. */
+@media (prefers-reduced-transparency: reduce) {
+  .os-root {
+    --os-surface-glass: var(--os-surface-solid);
+    --os-glass-blur: none;
+  }
+}
+
+.os-root {
+  font-family: var(--os-font);
+  color: var(--os-text);
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: -0.08px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Trim the trailing separator on the last row of a grouped list. */
+.os-root .os-row:last-child {
+  border-bottom: none;
+}
+.os-root .os-btn:active {
+  filter: brightness(0.95);
+}

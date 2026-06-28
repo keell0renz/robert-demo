@@ -20,7 +20,8 @@
     "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "db:push": "node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs push",
     "db:studio": "node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs studio",
-    "db:reset": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/db-reset.mjs"
+    "db:reset": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/db-reset.mjs",
+    "db:seed": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/seed-demo.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.1",
@@ -28,6 +29,7 @@
     "ai": "^7.0.4",
     "drizzle-orm": "^0.45.2",
     "eve": "^0.16.2",
+    "lucide-react": "^1.21.0",
     "next": "16.2.9",
     "postgres": "^3.4.9",
     "react": "19.2.4",

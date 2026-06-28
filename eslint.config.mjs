@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated build output (eve dev/build artifacts, drizzle migrations).
+    ".eve/**",
+    "drizzle/**",
   ]),
 ]);
 

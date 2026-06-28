@@ -36,7 +36,11 @@ pnpm db:migrate    # apply migrations
 pnpm db:push       # push schema directly (fast dev iteration)
 pnpm db:studio     # drizzle studio
 pnpm db:reset      # DROP public schema + push (local only)
+pnpm db:seed       # insert the EXAMPLE_TREE demo page
 ```
+
+The `pages` table stores one generation per row: the user `prompt`, a `title`,
+and the `tree` (a `jsonb` macOS UI tree — see below). Rendered at `/page/{id}`.
 
 ## Develop
 
@@ -71,6 +75,41 @@ POST /eve/v1/session/:id          # follow-up (with continuationToken)
 
 Inspect the discovered agent surface any time with `npx eve info`.
 
-The home page (`src/app/page.tsx`) is a minimal chat using eve's `useEveAgent`
-hook (`eve/react`) against those same-origin routes — a smoke test for the
-wiring. The real macOS-style generative UI system is built on top of this.
+The home page (`src/app/page.tsx`) takes a prompt, sends it to the agent with
+`useEveAgent` (`eve/react`), and surfaces the `save_page` result as a link to
+the generated page.
+
+## The macOS generative UI system (`src/os/`)
+
+This is **Path A — spec-over-code**: the agent never writes CSS or markup. It
+*composes* a closed set of primitives into a JSON tree, we store the tree as
+`jsonb`, and a ~15-line recursive renderer walks it. Off-vocabulary output is
+unrenderable, not just ugly — the guardrail is structural.
+
+- [`tokens.css`](./src/os/tokens.css) — all the design intelligence (macOS
+  color/type/metrics/elevation, light + dark, a glass layer that falls back to
+  solid under *Reduce transparency*). Scoped to `.os-root`. The agent never
+  touches it.
+- [`primitives/`](./src/os/primitives) — the 13-component vocabulary (Window,
+  Sidebar, Toolbar, Content, Card, Text, Button, ListRow, TextField, Switch,
+  SegmentedControl, Badge, Divider), each reading the tokens. Icons come from a
+  closed [icon set](./src/os/primitives/icons.tsx) mapped onto Lucide.
+- [`schema.ts`](./src/os/schema.ts) — the vocabulary as a recursive Zod schema.
+  It is the **single source of truth**: wired into `save_page`'s `inputSchema`,
+  so eve forces the model to emit a tree that matches (structured output). A
+  type or prop that isn't here is unrepresentable.
+- [`registry.ts`](./src/os/registry.ts) — `type` → component. The design system
+  and the renderer are the same object. Adding a primitive = write it + add one
+  line; keep it in lockstep with `schema.ts`.
+- [`Render.tsx`](./src/os/Render.tsx) — the engine. No hooks, so it renders
+  inside a server component and freely mounts the `"use client"` primitives
+  underneath. `Desktop` wraps a tree in a wallpaper frame.
+
+Flow: prompt → agent composes a tree → [`save_page`](./agent/tools/save_page.ts)
+validates + inserts → returns `/page/{id}` → that route loads the row and renders
+`<Desktop node={tree} />`. See [`/demo`](./src/app/demo/page.tsx) for the same
+renderer driven by a static `EXAMPLE_TREE`, no DB or agent.
+
+Not yet built (upgrade seams): a self-correcting retry loop that feeds Zod
+errors back to the model, named-action indirection for behavior, and
+Radix-backed overlay primitives (Popover/Menu/Select/Dialog).

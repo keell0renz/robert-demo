@@ -1,12 +1,15 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import type { UINode } from "../os/types";
 
-// A `page` is one generation: the user's query plus the UI markup the agent
-// produced for it. Rendered at /page/{id}.
+// A `page` is one generation: the user's prompt plus the macOS-style UI tree
+// the agent produced (Path A — a jsonb component tree, not code). Rendered at
+// /page/{id} by walking the tree through the REGISTRY.
 export const pages = pgTable("pages", {
   id: uuid("id").defaultRandom().primaryKey(),
   prompt: text("prompt").notNull(),
-  // The generated UI markup (the mac-os-style component tree as text/markup).
-  markup: text("markup").notNull(),
+  title: text("title").notNull().default("Untitled"),
+  // The generated UI tree (validated against UINodeSchema before it lands here).
+  tree: jsonb("tree").$type<UINode>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -1,0 +1,28 @@
+{
+  "eventType": "run_created",
+  "runId": "wrun_01KW6KS745VMFABGRYJWFESNKP",
+  "eventId": "evnt_01KW6KS74FBWZ34Y3B5HT2YKVH",
+  "createdAt": "2026-06-28T07:58:23.884Z",
+  "specVersion": 5,
+  "eventData": {
+    "deploymentId": "dpl_local@bundled",
+    "workflowName": "workflow//eve//workflowEntry",
+    "input": {
+      "__type": "Uint8Array",
+      "data": "enN0ZCi1L/1gVQNVFQC2r4slEI3qATg8RAvzJwE9Ey3comcExVUlCWcoKtbUyqIPsCgAAABgFX4AfgCJAJZT2o7YEpDdkjSjFoc4RzRebsdZza/0utVo1FcevFJakbQVWudHv8rTrMbYCm0FYlgr1uxLacXWSvFGY8pt0PnvV2mFNuZ1AW6T5yD35Y6I8Bn2WeX2XOT2QPZG3+sXR7QJBPkj/rQGSJdMq6f1y82B/BlGJ0c0hrewYEFcBhCXjEN8Yerl0r11qlrmfvSGag0YCXXbWJb7g7nWrwLDbdI8gEilJO3LbQHZ8W1gXXYlwLrArUzWi5sEWdL54KaA/LUeYFhHkD3arF5ucsBlpY4D+fr8aU2qsY4Atn7Pn3QuHmTHZy09yC7rpfBHTcjobNCD/NSvzP6lA+9BDtETpQhR7vKRnlQ9iUghNVDjKKppYXzE6dQsisVhzJ8N07RYoOVhXLeNvxWbnCUBLQ3jstW5JZFMK6fpWaAFYsgqmaClWRSM2ZOzRG9pGA5x5sIotjB34sedkhuTkIrYSFA/0KLda2nhKioBuRhVj3NvnGYhKfeQYsQRcbiY+9VxsaaX8Ws+zawLDJ7Zb5Nn4K9nDm4hLp3VsVoTxyASrMZmpNNi3J4DOc6n7visuTWfUdP+97UOYaekFy2qZ9HIdpKU7RRPQi5BQdI1kVRRkgNBhzg7xCG3SfQg97fs94tbYhLRGPt3cJs8D7J//7sNi+WwvpyTbitjNbX+dDLRXubvpKJFrF4vICCCqebMAz1k8k27Bn3tlWgHwGrUYwTVtIsGbWmjZYNeHiCI6yWWKYeEa6nWSvYDpBwA+WFEvhUbUW/fdkMt0IPltUdmuEApwAIGgVYLmU3dabNjYhzQjQFQTg8MzvpghnmRs5skNABNDwqIOk9yzNhYxLaj/ZY9"
+    },
+    "executionContext": {
+      "traceCarrier": {},
+      "workflowCoreVersion": "5.0.0-beta.24",
+      "features": {
+        "encryption": false
+      }
+    },
+    "attributes": {
+      "$eve.type": "session",
+      "$eve.trigger": "http",
+      "$eve.title": "Design a settings page for a mail app: an account section and a few toggles for notifications."
+    },
+    "allowReservedAttributes": true
+  }
+}

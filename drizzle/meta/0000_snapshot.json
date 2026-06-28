@@ -1,5 +1,5 @@
 {
-  "id": "468931ea-6813-4983-b63b-47e5d8a2311c",
+  "id": "9252415a-98dc-4a38-afc2-9e15419742ed",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -21,9 +21,16 @@
           "primaryKey": false,
           "notNull": true
         },
-        "markup": {
-          "name": "markup",
+        "title": {
+          "name": "title",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Untitled'"
+        },
+        "tree": {
+          "name": "tree",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
