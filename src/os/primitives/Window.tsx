@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -21,6 +22,11 @@ const OUT = 5; // px the hit-zone extends beyond the frame
 const IN = 5; // px it extends inward
 const EDGE = OUT + IN; // edge band thickness
 const CORNER = 16; // corner hit-square side
+
+// Window tiling (green-button menu): the gap macOS leaves at the stage edges
+// and between adjacent tiles.
+const SNAP_MARGIN = 14;
+const SNAP_GAP = 12;
 
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -54,18 +60,46 @@ const HANDLES: { dir: ResizeDir; z: number; style: CSSProperties }[] = [
   { dir: "sw", z: 31, style: { bottom: -OUT, left: -OUT, width: CORNER, height: CORNER } },
 ];
 
+// A tiling preset, expressed as a fractional region of the stage [0..1]. The
+// same fractions drive both the snap geometry and the little tile icon, so the
+// preview always matches what the window does.
+type Region = { label: string; fx: number; fy: number; fw: number; fh: number };
+
+const MOVE_RESIZE: Region[] = [
+  { label: "Left", fx: 0, fy: 0, fw: 0.5, fh: 1 },
+  { label: "Right", fx: 0.5, fy: 0, fw: 0.5, fh: 1 },
+  { label: "Top", fx: 0, fy: 0, fw: 1, fh: 0.5 },
+  { label: "Bottom", fx: 0, fy: 0.5, fw: 1, fh: 0.5 },
+];
+
+const FILL_ARRANGE: Region[] = [
+  { label: "Fill", fx: 0, fy: 0, fw: 1, fh: 1 },
+  { label: "Center", fx: 0.18, fy: 0.14, fw: 0.64, fh: 0.72 },
+  { label: "Top Left", fx: 0, fy: 0, fw: 0.5, fh: 0.5 },
+  { label: "Bottom Right", fx: 0.5, fy: 0.5, fw: 0.5, fh: 0.5 },
+];
+
+// Flat list so a tile can be resolved by a single global index when the
+// press-drag-release gesture reads the element under the release point.
+const ALL_REGIONS: Region[] = [...MOVE_RESIZE, ...FILL_ARRANGE];
+
 // The window chrome (rounded frame + title bar + a flex body). Shared by the
 // plain Window primitive and the navigation-aware NavShell so both look
 // identical and only the body wiring differs.
 //
 // It also makes the window feel real: drag it by the title bar, resize it from
-// any edge or corner. On first paint it measures its natural size and centres
-// itself inside the positioned stage, then takes over with absolute geometry so
-// the opposite edge stays anchored while resizing (real-macOS behaviour).
+// any edge or corner, and hover / long-press the green button for the macOS
+// tiling popover (Move & Resize / Fill & Arrange). On first paint it measures
+// its natural size and centres itself inside the positioned stage, then takes
+// over with absolute geometry so the opposite edge stays anchored while
+// resizing (real-macOS behaviour).
 export function WindowFrame({ title = "Untitled", children }: { title?: string; children?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box | null>(null);
   const [active, setActive] = useState<null | "drag" | ResizeDir>(null);
+  // Whether to ease geometry changes. Off at mount + during drag/resize; on for
+  // tiling snaps so they animate into place.
+  const [snap, setSnap] = useState(false);
   // The in-flight gesture. Held in a ref so the move handler stays identity-
   // stable (no re-subscribe per frame) and reads start-of-gesture geometry.
   const action = useRef<
@@ -81,6 +115,14 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
       }
   >(null);
 
+  const stageSize = () => {
+    const parent = ref.current?.offsetParent as HTMLElement | null;
+    return {
+      pw: parent?.clientWidth ?? window.innerWidth,
+      ph: parent?.clientHeight ?? window.innerHeight,
+    };
+  };
+
   // Measure once: take the natural content height + the stage size, centre, and
   // switch to absolute layout. `offsetParent` is the nearest positioned
   // ancestor (the .os-root stage / Desktop), which is also the containing block
@@ -88,13 +130,24 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el || box) return;
-    const parent = el.offsetParent as HTMLElement | null;
-    const pw = parent?.clientWidth ?? window.innerWidth;
-    const ph = parent?.clientHeight ?? window.innerHeight;
+    const { pw, ph } = stageSize();
     const w = clamp(DEFAULT_W, MIN_W, Math.max(MIN_W, pw - 32));
     const h = clamp(el.offsetHeight, MIN_H, Math.max(MIN_H, ph - 32));
     setBox({ x: Math.max(0, (pw - w) / 2), y: Math.max(0, (ph - h) / 2), w, h });
   }, [box]);
+
+  // Snap the window into a fractional region of the stage (green-button menu).
+  const arrange = useCallback((r: Region) => {
+    const { pw, ph } = stageSize();
+    const innerW = pw - 2 * SNAP_MARGIN;
+    const innerH = ph - 2 * SNAP_MARGIN;
+    let w = clamp(r.fw * innerW - SNAP_GAP, MIN_W, pw);
+    let h = clamp(r.fh * innerH - SNAP_GAP, MIN_H, ph);
+    let x = clamp(SNAP_MARGIN + r.fx * innerW + SNAP_GAP / 2, 0, Math.max(0, pw - w));
+    let y = clamp(SNAP_MARGIN + r.fy * innerH + SNAP_GAP / 2, 0, Math.max(0, ph - h));
+    setSnap(true);
+    setBox({ x, y, w, h });
+  }, []);
 
   const onMove = useCallback((e: PointerEvent) => {
     const a = action.current;
@@ -136,16 +189,9 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
     (mode: "drag" | "resize", dir?: ResizeDir) => (e: ReactPointerEvent) => {
       if (!box || e.button !== 0) return;
       e.preventDefault();
-      const parent = ref.current?.offsetParent as HTMLElement | null;
-      action.current = {
-        mode,
-        dir,
-        px: e.clientX,
-        py: e.clientY,
-        box,
-        pw: parent?.clientWidth ?? window.innerWidth,
-        ph: parent?.clientHeight ?? window.innerHeight,
-      };
+      setSnap(false); // direct manipulation should track the pointer 1:1
+      const { pw, ph } = stageSize();
+      action.current = { mode, dir, px: e.clientX, py: e.clientY, box, pw, ph };
       setActive(mode === "drag" ? "drag" : dir!);
       // Pin the cursor on the whole document so it holds steady even when the
       // pointer briefly leaves the thin handle while resizing fast.
@@ -159,11 +205,13 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
 
   const positioned = !!box;
   const dragging = active === "drag";
+  const ease = "180ms ease";
+  const transition = snap && !active ? `left ${ease}, top ${ease}, width ${ease}, height ${ease}` : undefined;
 
   // Outer wrapper holds the geometry and is NOT clipped, so the straddling
   // resize handles can extend a few px past the visual frame.
   const wrapStyle: CSSProperties = positioned
-    ? { position: "absolute", left: box!.x, top: box!.y, width: box!.w, height: box!.h }
+    ? { position: "absolute", left: box!.x, top: box!.y, width: box!.w, height: box!.h, transition }
     : { position: "relative", width: DEFAULT_W, maxWidth: "100%" };
 
   // Inner frame: the visible, rounded, clipped window.
@@ -181,7 +229,7 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
   return (
     <div ref={ref} style={wrapStyle}>
       <div style={frameStyle}>
-        <TitleBar title={title} dragging={dragging} onDragStart={begin("drag")} />
+        <TitleBar title={title} dragging={dragging} onDragStart={begin("drag")} onArrange={arrange} />
         <div style={{ display: "flex", flex: 1, minHeight: positioned ? 0 : 420, overflow: "hidden" }}>
           {children}
         </div>
@@ -211,21 +259,15 @@ function TitleBar({
   title,
   dragging,
   onDragStart,
+  onArrange,
 }: {
   title: string;
   dragging: boolean;
   onDragStart: (e: ReactPointerEvent) => void;
+  onArrange: (r: Region) => void;
 }) {
-  const [hover, setHover] = useState(false);
-  const lights = [
-    { c: "var(--os-tl-red)", g: "×" },
-    { c: "var(--os-tl-yellow)", g: "−" },
-    { c: "var(--os-tl-green)", g: "+" },
-  ];
   return (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       onPointerDown={onDragStart}
       style={{
         height: 38,
@@ -242,29 +284,7 @@ function TitleBar({
         zIndex: 10,
       }}
     >
-      <div style={{ display: "flex", gap: 8 }}>
-        {lights.map((l, i) => (
-          <span
-            key={i}
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              background: l.c,
-              boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.2)",
-              fontSize: 9,
-              fontWeight: 700,
-              lineHeight: "12px",
-              textAlign: "center",
-              color: hover ? "rgba(0,0,0,0.5)" : "transparent",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            {l.g}
-          </span>
-        ))}
-      </div>
+      <TrafficLights onArrange={onArrange} />
       <div
         style={{
           position: "absolute",
@@ -280,5 +300,215 @@ function TitleBar({
         {title}
       </div>
     </div>
+  );
+}
+
+// The three window buttons. The green one carries the macOS tiling menu: hover
+// it (or press and hold) to reveal Move & Resize / Fill & Arrange presets.
+function TrafficLights({ onArrange }: { onArrange: (r: Region) => void }) {
+  const [hover, setHover] = useState(false);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const timers = useRef<{ hold?: number; close?: number }>({});
+
+  const clearT = (k: keyof typeof timers.current) => {
+    const t = timers.current[k];
+    if (t) {
+      window.clearTimeout(t);
+      timers.current[k] = undefined;
+    }
+  };
+
+  // While the menu is open, the gesture ends on the NEXT pointer release
+  // (you held the green button, dragged onto a tile, and let go): release over a
+  // tile applies it; release anywhere else just closes. Also dismiss on Escape
+  // or a pointer-down outside the menu.
+  useEffect(() => {
+    if (!open) return;
+    const onUp = (e: PointerEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      const tile = el?.closest("[data-snap-index]") as HTMLElement | null;
+      const r = tile ? ALL_REGIONS[Number(tile.dataset.snapIndex)] : undefined;
+      if (r) onArrange(r);
+      setOpen(false);
+    };
+    const onDoc = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointerdown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onArrange]);
+
+  useEffect(
+    () => () => {
+      clearT("hold");
+      clearT("close");
+    },
+    [],
+  );
+
+  const lights = [
+    { c: "var(--os-tl-red)", g: "×" },
+    { c: "var(--os-tl-yellow)", g: "−" },
+    { c: "var(--os-tl-green)", g: "+", green: true },
+  ];
+
+  return (
+    <div
+      ref={rootRef}
+      // Pressing a window button must never start a window drag.
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerEnter={() => {
+        clearT("close");
+        setHover(true);
+      }}
+      onPointerLeave={() => {
+        setHover(false);
+        clearT("hold");
+        timers.current.close = window.setTimeout(() => setOpen(false), 280);
+      }}
+      style={{ display: "flex", alignItems: "center", gap: 8, position: "relative", zIndex: 50 }}
+    >
+      {lights.map((l, i) => (
+        <span
+          key={i}
+          onPointerDown={
+            l.green
+              ? () => {
+                  // open ONLY on a deliberate press-and-hold (not hover, not a
+                  // short click); a quick release before this fires cancels it
+                  timers.current.hold = window.setTimeout(() => setOpen(true), 280);
+                }
+              : undefined
+          }
+          onPointerUp={
+            l.green
+              ? () => {
+                  // released before the hold fired → it was a short click → do
+                  // nothing (the menu opens on HOLD, not on click)
+                  clearT("hold");
+                }
+              : undefined
+          }
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: "50%",
+            background: l.c,
+            boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.2)",
+            fontSize: 9,
+            fontWeight: 700,
+            lineHeight: "12px",
+            textAlign: "center",
+            color: hover ? "rgba(0,0,0,0.5)" : "transparent",
+            cursor: "pointer",
+            userSelect: "none",
+          }}
+        >
+          {l.g}
+        </span>
+      ))}
+      {open ? <TilingMenu /> : null}
+    </div>
+  );
+}
+
+function TilingMenu() {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 26,
+        left: -8,
+        width: 250,
+        padding: 10,
+        borderRadius: 14,
+        background: "var(--os-window-bg)",
+        border: "1px solid var(--os-hairline)",
+        boxShadow: "var(--os-shadow-window)",
+        fontFamily: "var(--os-font)",
+        cursor: "default",
+        // never let the drag-to-select gesture start a text selection
+        userSelect: "none",
+      }}
+    >
+      <Section title="Move & Resize" regions={MOVE_RESIZE} offset={0} />
+      <div style={{ height: 6 }} />
+      <Section title="Fill & Arrange" regions={FILL_ARRANGE} offset={MOVE_RESIZE.length} />
+    </div>
+  );
+}
+
+function Section({ title, regions, offset }: { title: string; regions: Region[]; offset: number }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--os-text-secondary)", padding: "2px 4px 6px" }}>
+        {title}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
+        {regions.map((r, i) => (
+          <SnapTile key={i} region={r} index={offset + i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// A preset tile: the stage outline with the target region filled — the same
+// fractions the window will snap to. Selection is handled by the gesture's
+// release (see TrafficLights), resolved via `data-snap-index`; the tile itself
+// only previews and highlights.
+function SnapTile({ region, index }: { region: Region; index: number }) {
+  const [h, setH] = useState(false);
+  return (
+    <button
+      title={region.label}
+      data-snap-index={index}
+      onPointerEnter={() => setH(true)}
+      onPointerLeave={() => setH(false)}
+      style={{
+        height: 32,
+        display: "grid",
+        placeItems: "center",
+        border: "none",
+        borderRadius: 6,
+        background: h ? "var(--os-fill-soft)" : "transparent",
+        cursor: "pointer",
+        padding: 0,
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: 26,
+          height: 18,
+          borderRadius: 3,
+          border: `1.5px solid ${h ? "var(--os-accent)" : "var(--os-text-tertiary)"}`,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: `${region.fx * 100}%`,
+            top: `${region.fy * 100}%`,
+            width: `${region.fw * 100}%`,
+            height: `${region.fh * 100}%`,
+            background: h ? "var(--os-accent)" : "var(--os-text-secondary)",
+            borderRadius: 1.5,
+            transform: "scale(0.84)",
+            transformOrigin: "center",
+          }}
+        />
+      </div>
+    </button>
   );
 }
