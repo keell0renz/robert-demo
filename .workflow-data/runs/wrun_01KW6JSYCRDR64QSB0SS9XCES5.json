@@ -1,0 +1,26 @@
+{
+  "runId": "wrun_01KW6JSYCRDR64QSB0SS9XCES5",
+  "deploymentId": "dpl_local@bundled",
+  "workflowName": "workflow//eve//workflowEntry",
+  "specVersion": 5,
+  "executionContext": {
+    "traceCarrier": {},
+    "workflowCoreVersion": "5.0.0-beta.24",
+    "features": {
+      "encryption": false
+    }
+  },
+  "input": {
+    "__type": "Uint8Array",
+    "data": "ZGV2bFtbMV0seyJpbnB1dCI6Miwic2VyaWFsaXplZENvbnRleHQiOjR9LHsibWVzc2FnZSI6MywiY29udGV4dCI6LTEsIm91dHB1dFNjaGVtYSI6LTF9LCJIaSEiLHsiZXZlLmJ1bmRsZSI6NSwiZXZlLmNoYW5uZWwiOjExLCJldmUuY2hhbm5lbEluc3RydW1lbnRhdGlvbiI6MTQsImV2ZS5jb250aW51YXRpb25Ub2tlbiI6MTcsImV2ZS5tb2RlIjoxOCwiZXZlLmF1dGgiOjE5LCJldmUuaW5pdGlhdG9yQXV0aCI6MTksImV2ZS5jYXBhYmlsaXRpZXMiOjIyfSx7Im5vZGVJZCI6LTEsInNvdXJjZSI6Nn0seyJhcHBSb290Ijo3LCJraW5kIjo4LCJtb2R1bGVNYXBMb2FkZXJQYXRoIjo5LCJzYW5kYm94QXBwUm9vdCI6MTB9LCIvVXNlcnMva2VlbGwwcmVuei9Qcm9qZWN0cy9yb2JlcnQtZGVtby8uZXZlL2Rldi1ydW50aW1lL3NuYXBzaG90cy9tcXhoY2w2di1hNjRlNzYyMC03YzgzLTQ3ZWUtYjUyOS0yNDZhMGZjMGVlY2Evc291cmNlIiwiZGlzayIsIi9Vc2Vycy9rZWVsbDByZW56L1Byb2plY3RzL3JvYmVydC1kZW1vL25vZGVfbW9kdWxlcy8ucG5wbS9ldmVAMC4xNi4yX2FpQDcuMC40X3pvZEA0LjQuM19fZHJpenpsZS1vcm1AMC40NS4yX3Bvc3RncmVzQDMuNC45X19qaXRpQDIuNy4wX25leHRAMTYuMi5fZjcyMDQwODc2NTNmODE4M2RlZWI0YzhjMzYxZmM5NmIvbm9kZV9tb2R1bGVzL2V2ZS9kaXN0L3NyYy9pbnRlcm5hbC9hdXRob3JlZC1tb2R1bGUtbWFwLWxvYWRlci5qcyIsIi9Vc2Vycy9rZWVsbDByZW56L1Byb2plY3RzL3JvYmVydC1kZW1vIix7ImtpbmQiOjEyLCJzdGF0ZSI6MTN9LCJodHRwIix7fSx7ImtpbmQiOjE1LCJtZXRhZGF0YSI6MTZ9LCJjaGFubmVsOmV2ZSIse30sImV2ZTpldmU6YjkzMzE4ZjUtNDZmZS00NGZjLWEwMmQtYWMwZDY3YWYzM2MyIiwiY29udmVyc2F0aW9uIix7ImF0dHJpYnV0ZXMiOjIwLCJhdXRoZW50aWNhdG9yIjoyMSwicHJpbmNpcGFsSWQiOjIxLCJwcmluY2lwYWxUeXBlIjoyMX0se30sImxvY2FsLWRldiIseyJyZXF1ZXN0SW5wdXQiOjIzfSx0cnVlXQ=="
+  },
+  "createdAt": "2026-06-28T07:41:19.134Z",
+  "status": "running",
+  "startedAt": "2026-06-28T07:41:19.134Z",
+  "updatedAt": "2026-06-28T07:41:19.134Z",
+  "attributes": {
+    "$eve.type": "session",
+    "$eve.trigger": "http",
+    "$eve.title": "Hi!"
+  }
+}

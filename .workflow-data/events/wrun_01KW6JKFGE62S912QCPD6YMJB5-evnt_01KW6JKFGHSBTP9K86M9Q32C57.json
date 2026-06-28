@@ -1,0 +1,28 @@
+{
+  "eventType": "run_created",
+  "specVersion": 5,
+  "eventData": {
+    "deploymentId": "dpl_local@bundled",
+    "workflowName": "workflow//eve//workflowEntry",
+    "input": {
+      "__type": "Uint8Array",
+      "data": "ZGV2bFtbMV0seyJpbnB1dCI6Miwic2VyaWFsaXplZENvbnRleHQiOjR9LHsibWVzc2FnZSI6MywiY29udGV4dCI6LTEsIm91dHB1dFNjaGVtYSI6LTF9LCJwaW5nIix7ImV2ZS5idW5kbGUiOjUsImV2ZS5jaGFubmVsIjoxMSwiZXZlLmNoYW5uZWxJbnN0cnVtZW50YXRpb24iOjE0LCJldmUuY29udGludWF0aW9uVG9rZW4iOjE3LCJldmUubW9kZSI6MTgsImV2ZS5hdXRoIjoxOSwiZXZlLmluaXRpYXRvckF1dGgiOjE5LCJldmUuY2FwYWJpbGl0aWVzIjoyMn0seyJub2RlSWQiOi0xLCJzb3VyY2UiOjZ9LHsiYXBwUm9vdCI6Nywia2luZCI6OCwibW9kdWxlTWFwTG9hZGVyUGF0aCI6OSwic2FuZGJveEFwcFJvb3QiOjEwfSwiL1VzZXJzL2tlZWxsMHJlbnovUHJvamVjdHMvcm9iZXJ0LWRlbW8vLmV2ZS9kZXYtcnVudGltZS9zbmFwc2hvdHMvbXF4aDgzOTEtODk0OWJkYjktMTM1ZS00ZGNiLTgwY2QtZmUyYWFlMGVhMGE1L3NvdXJjZSIsImRpc2siLCIvVXNlcnMva2VlbGwwcmVuei9Qcm9qZWN0cy9yb2JlcnQtZGVtby9ub2RlX21vZHVsZXMvLnBucG0vZXZlQDAuMTYuMl9haUA3LjAuNF96b2RANC40LjNfX2RyaXp6bGUtb3JtQDAuNDUuMl9wb3N0Z3Jlc0AzLjQuOV9faml0aUAyLjcuMF9uZXh0QDE2LjIuX2Y3MjA0MDg3NjUzZjgxODNkZWViNGM4YzM2MWZjOTZiL25vZGVfbW9kdWxlcy9ldmUvZGlzdC9zcmMvaW50ZXJuYWwvYXV0aG9yZWQtbW9kdWxlLW1hcC1sb2FkZXIuanMiLCIvVXNlcnMva2VlbGwwcmVuei9Qcm9qZWN0cy9yb2JlcnQtZGVtbyIseyJraW5kIjoxMiwic3RhdGUiOjEzfSwiaHR0cCIse30seyJraW5kIjoxNSwibWV0YWRhdGEiOjE2fSwiY2hhbm5lbDpldmUiLHt9LCJldmU6ZXZlOmIwNGY3NWRhLWIwYTUtNGUxYS1iYWFiLTQ3NjE5OTk0NTY5OCIsImNvbnZlcnNhdGlvbiIseyJhdHRyaWJ1dGVzIjoyMCwiYXV0aGVudGljYXRvciI6MjEsInByaW5jaXBhbElkIjoyMSwicHJpbmNpcGFsVHlwZSI6MjF9LHt9LCJsb2NhbC1kZXYiLHsicmVxdWVzdElucHV0IjoyM30sdHJ1ZV0="
+    },
+    "executionContext": {
+      "traceCarrier": {},
+      "workflowCoreVersion": "5.0.0-beta.24",
+      "features": {
+        "encryption": false
+      }
+    },
+    "attributes": {
+      "$eve.type": "session",
+      "$eve.trigger": "http",
+      "$eve.title": "ping"
+    },
+    "allowReservedAttributes": true
+  },
+  "runId": "wrun_01KW6JKFGE62S912QCPD6YMJB5",
+  "eventId": "evnt_01KW6JKFGHSBTP9K86M9Q32C57",
+  "createdAt": "2026-06-28T07:37:47.281Z"
+}

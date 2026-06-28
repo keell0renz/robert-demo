@@ -1,0 +1,41 @@
+{
+  "eventType": "attr_set",
+  "specVersion": 5,
+  "eventData": {
+    "changes": [
+      {
+        "key": "$eve.model",
+        "value": "anthropic/claude-opus-4.8"
+      },
+      {
+        "key": "$eve.input_tokens",
+        "value": "6909"
+      },
+      {
+        "key": "$eve.output_tokens",
+        "value": "61"
+      },
+      {
+        "key": "$eve.cache_read_tokens",
+        "value": "0"
+      },
+      {
+        "key": "$eve.cache_write_tokens",
+        "value": "6907"
+      },
+      {
+        "key": "$eve.tool_count",
+        "value": "12"
+      }
+    ],
+    "writer": {
+      "type": "step",
+      "stepId": "step_01KW6JKFHKS67F3YF92HES24FF",
+      "attempt": 1
+    },
+    "allowReservedAttributes": true
+  },
+  "runId": "wrun_01KW6JKFHKKZ5M6PW27CC11FCX",
+  "eventId": "evnt_01KW6JKHP2TKW11687ZC9Z0ZQD",
+  "createdAt": "2026-06-28T07:37:49.506Z"
+}
