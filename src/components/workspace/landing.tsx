@@ -64,7 +64,7 @@ export function Landing({
                 key={ex}
                 onClick={() => onSend(ex)}
                 disabled={isBusy}
-                className="text-label-xs text-muted-foreground hover:text-foreground hover:border-foreground/20 border-border bg-card rounded-full border px-3 py-1.5 transition-colors disabled:opacity-50"
+                className="text-label-xs text-muted-foreground hover:text-foreground hover:border-foreground/20 border-border bg-card cursor-pointer rounded-full border px-3 py-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {ex}
               </button>

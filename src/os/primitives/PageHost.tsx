@@ -44,7 +44,7 @@ export function PageHost({ nodes }: { nodes: UINode[] }) {
             border: "none",
             background: "transparent",
             color: "var(--os-accent)",
-            cursor: "default",
+            cursor: "pointer",
             fontFamily: "var(--os-font)",
             fontSize: 13,
             fontWeight: 500,

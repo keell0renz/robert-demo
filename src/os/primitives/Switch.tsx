@@ -9,7 +9,10 @@ export function Switch({ label, on = false }: { label?: string; on?: boolean }) 
     <button
       role="switch"
       aria-checked={active}
-      onClick={() => setActive((a) => !a)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setActive((a) => !a);
+      }}
       style={{
         width: 38,
         height: 22,
@@ -17,7 +20,7 @@ export function Switch({ label, on = false }: { label?: string; on?: boolean }) 
         borderRadius: "var(--os-radius-pill)",
         border: "none",
         padding: 0,
-        cursor: "default",
+        cursor: "pointer",
         background: active ? "var(--os-green)" : "var(--os-fill-soft)",
         boxShadow: active ? "none" : "inset 0 0 0 1px var(--os-hairline)",
         transition: "background 150ms",
@@ -41,9 +44,12 @@ export function Switch({ label, on = false }: { label?: string; on?: boolean }) 
   );
   if (!label) return toggle;
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, color: "var(--os-text)" }}>
+    <div
+      onClick={() => setActive((a) => !a)}
+      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, color: "var(--os-text)", cursor: "pointer" }}
+    >
       <span style={{ flex: 1 }}>{label}</span>
       {toggle}
-    </label>
+    </div>
   );
 }

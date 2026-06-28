@@ -53,7 +53,7 @@ export function Sidebar({
               borderRadius: "var(--os-radius-control)",
               fontSize: 13,
               fontWeight: active ? 500 : 400,
-              cursor: "default",
+              cursor: "pointer",
               color: active ? "var(--os-accent-text)" : "var(--os-text)",
               background: active ? "var(--os-accent)" : "transparent",
             }}

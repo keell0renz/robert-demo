@@ -108,10 +108,13 @@ export function Desktop({ node }: { node: UINode | null | undefined }) {
     <div
       className="os-root"
       style={{
+        // Positioned containing block: the window measures this box, centres
+        // itself, then drags/resizes within it (see WindowFrame).
+        position: "relative",
         minHeight: "100vh",
+        overflow: "hidden",
         display: "grid",
         placeItems: "center",
-        padding: 40,
         background: "var(--os-wallpaper)",
       }}
     >

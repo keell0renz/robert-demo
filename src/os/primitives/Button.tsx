@@ -33,7 +33,7 @@ export function Button({
         fontFamily: "var(--os-font)",
         fontSize: 13,
         fontWeight: 500,
-        cursor: "default",
+        cursor: "pointer",
         whiteSpace: "nowrap",
         boxShadow: variant === "subtle" ? "none" : "var(--os-shadow-button)",
         ...VARIANTS[variant],

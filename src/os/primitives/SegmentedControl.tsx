@@ -46,7 +46,7 @@ export function SegmentedControl({
               fontSize: 13,
               fontWeight: active ? 500 : 400,
               color: "var(--os-text)",
-              cursor: "default",
+              cursor: active ? "default" : "pointer",
               background: active ? "var(--os-control-bg)" : "transparent",
               boxShadow: active ? "0 0.5px 1.5px rgba(0,0,0,0.16)" : "none",
             }}

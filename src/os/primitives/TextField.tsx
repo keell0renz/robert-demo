@@ -30,6 +30,7 @@ export function TextField({
         border: `1px solid ${focus ? "var(--os-accent)" : "var(--os-hairline)"}`,
         borderRadius: isSearch ? "var(--os-radius-pill)" : "var(--os-radius-control)",
         boxShadow: focus ? "0 0 0 3px color-mix(in srgb, var(--os-accent) 25%, transparent)" : "none",
+        cursor: "text",
       }}
     >
       {isSearch ? <Search size={14} strokeWidth={1.75} style={{ color: "var(--os-text-tertiary)" }} /> : null}
