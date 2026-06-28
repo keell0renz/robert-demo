@@ -155,6 +155,10 @@ export function Workspace({
     title: a.title,
     running: winState[a.key] === "open" || winState[a.key] === "minimized",
     onClick: () => openWindow(a.key),
+    // The generated icon, only once set_app_icon has actually completed
+    // (iconVersion > 0) — otherwise we'd request it before it exists and 404.
+    // The ?v= busts the cache when it's regenerated.
+    iconUrl: a.id && a.iconVersion > 0 ? `/api/apps/${a.id}/icon?v=${a.iconVersion}` : null,
   }));
 
   return (

@@ -24,6 +24,8 @@ export type DerivedApp = {
   title: string;
   letter: string;
   tree: UINode | null;
+  /** Bumped each time set_app_icon completes — busts the dock's icon cache. */
+  iconVersion: number;
 };
 
 export type DerivedApps = {
@@ -57,7 +59,7 @@ export function deriveApps(messages: readonly EveMessage[]): DerivedApps {
       if (toolName === "create_application") {
         let app = byKey.get(toolCallId);
         if (!app) {
-          app = { key: toolCallId, id: null, title: "Untitled", letter: "A", tree: null };
+          app = { key: toolCallId, id: null, title: "Untitled", letter: "A", tree: null, iconVersion: 0 };
           byKey.set(toolCallId, app);
           order.push(toolCallId);
         }
@@ -93,6 +95,13 @@ export function deriveApps(messages: readonly EveMessage[]): DerivedApps {
           remove(key);
           if (input?.id) idToKey.delete(input.id);
         }
+      } else if (toolName === "set_app_icon") {
+        const input = part.input as { id?: string } | undefined;
+        const key = input?.id ? idToKey.get(input.id) : undefined;
+        const app = key ? byKey.get(key) : undefined;
+        // Bump only when the icon has actually been written (output-available),
+        // so the dock fetches the new icon exactly once it exists.
+        if (app && state === "output-available") app.iconVersion += 1;
       }
     }
   }

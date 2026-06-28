@@ -26,9 +26,13 @@ export const apps = pgTable(
     // The eve session (workspace) this app belongs to.
     sessionId: text("session_id").notNull(),
     title: text("title").notNull().default("Untitled"),
-    // A single A–Z character; renders as the app's lettered dock icon (we can't
-    // generate real icons yet).
+    // A single A–Z character; the dock icon's fallback before a real icon is
+    // generated (and while one is generating).
     letter: text("letter").notNull().default("A"),
+    // A generated app logo as a PNG data URL (`data:image/png;base64,...`).
+    // Null until the agent calls set_app_icon. Stored inline — it's a demo, so
+    // efficiency is not a concern.
+    icon: text("icon"),
     // The request that created the app (kept for listings/history).
     prompt: text("prompt").notNull(),
     // The current UI tree (validated against UINodeSchema before it lands here).

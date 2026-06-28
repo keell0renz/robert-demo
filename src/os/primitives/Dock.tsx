@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Compass, Mail, MessageCircle, Image as ImageIcon, MapPin, Calendar,
   Music, Settings, Terminal, NotebookPen, Camera, Phone, Trash2, Sparkles,
@@ -18,9 +18,15 @@ type App = {
   fg?: string;
   fill?: boolean;
   dot?: boolean;
-  // When set, the tile shows this character instead of the glyph (lettered app
-  // icons — our stand-in until real icon generation exists).
+  // When set, the tile shows this character instead of the glyph (the fallback
+  // before/while a real icon is generated).
   letter?: string;
+  // A generated icon image to show on the tile (falls back to letter/glyph on
+  // error or while missing).
+  iconUrl?: string | null;
+  // Render WITHOUT the squircle tile — just the glyph, like the real macOS
+  // Trash (a bare can sitting on the dock glass).
+  bare?: boolean;
 };
 
 // macOS-ish app set. Gradients are multi-stop and vivid so each tile reads with
@@ -41,17 +47,18 @@ const APPS: App[] = [
   { name: "Settings", glyph: Settings, grad: "linear-gradient(180deg,#e2e4e8 0%,#b9bdc4 55%,#9298a1 100%)", fg: "#5b6068" },
 ];
 
+// Trash is a BARE can on the dock glass (no squircle tile), like real macOS.
 const TRASH: App = {
-  name: "Trash", glyph: Trash2,
-  grad: "linear-gradient(180deg,rgba(255,255,255,0.3),rgba(255,255,255,0.08))", fg: "#ffffff",
+  name: "Trash", glyph: Trash2, grad: "transparent", fg: "rgba(255,255,255,0.92)", bare: true,
 };
 
-// The Agent — the ONE real app on this desktop. Everything else is set dressing;
-// this tile actually opens a window. A distinctive indigo squircle so it reads as
-// "the assistant" and stands apart from the decorative system apps.
+// The Agent — the ONE real app on this desktop. Uses a generated logo (with the
+// indigo squircle as fallback if the asset is missing) so it sits in line with
+// the AI-generated app icons.
 const AGENT: App = {
   name: "Agent", glyph: Sparkles,
   grad: "linear-gradient(180deg,#a78bfa 0%,#7c5cff 55%,#5b34e0 100%)", fill: true,
+  iconUrl: "/agent-icon.png",
 };
 
 const SIZE = 50;   // fixed icon size — no magnification
@@ -65,6 +72,7 @@ export type DockApp = {
   title: string;
   running: boolean;
   onClick: () => void;
+  iconUrl?: string | null;
 };
 
 // Vivid macOS-y tile gradients. We can't generate real icons yet, so each app is
@@ -134,9 +142,10 @@ export function Dock({
                 key={app.key}
                 app={{
                   name: app.title,
-                  glyph: Sparkles, // unused — letter takes over
+                  glyph: Sparkles, // unused — letter/icon takes over
                   grad: gradForLetter(app.letter),
                   letter: app.letter.toUpperCase(),
+                  iconUrl: app.iconUrl,
                   fg: "#ffffff",
                   dot: app.running,
                 }}
@@ -172,9 +181,15 @@ function Divider() {
 
 function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
   const [hover, setHover] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  // A new icon URL (first generation, or a regeneration) is a fresh attempt —
+  // clear any previous load error so the new image gets a chance.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on iconUrl change
+  useEffect(() => setImgError(false), [app.iconUrl]);
   const Glyph = app.glyph;
   const fg = app.fg ?? "#ffffff";
   const radius = SIZE * 0.235;
+  const showImg = Boolean(app.iconUrl) && !imgError;
 
   return (
     <div
@@ -216,56 +231,84 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
         {app.name}
       </div>
 
-      {/* The squircle. */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: radius,
-          background: app.grad,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          // Depth: inner top sheen + bottom inner shadow + crisp drop shadow.
-          boxShadow:
-            "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 0 0 0.5px rgba(255,255,255,0.18), inset 0 -3px 6px rgba(0,0,0,0.18), 0 3px 7px rgba(0,0,0,0.28)",
-        }}
-      >
-        {/* Glossy top-half highlight — the convex sheen real icons carry. */}
+      {app.bare ? (
+        /* Bare can on the dock glass — no tile (real macOS Trash). */
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Glyph
+            size={SIZE * 0.78}
+            strokeWidth={1.5}
+            color={fg}
+            style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))" }}
+          />
+        </div>
+      ) : (
+        /* The squircle. */
         <div
           style={{
             position: "absolute",
             inset: 0,
             borderRadius: radius,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 42%, rgba(255,255,255,0) 56%)",
-            pointerEvents: "none",
+            background: app.grad,
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            // Depth: inner top sheen + bottom inner shadow + crisp drop shadow.
+            boxShadow:
+              "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 0 0 0.5px rgba(255,255,255,0.18), inset 0 -3px 6px rgba(0,0,0,0.18), 0 3px 7px rgba(0,0,0,0.28)",
           }}
-        />
-        {app.letter ? (
-          <span
+        >
+          {/* Generated icon image, filling the tile, clipped to the squircle. */}
+          {showImg ? (
+            // eslint-disable-next-line @next/next/no-img-element -- data/api PNG, not a Next asset
+            <img
+              src={app.iconUrl ?? undefined}
+              alt={app.name}
+              width={SIZE}
+              height={SIZE}
+              onError={() => setImgError(true)}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : null}
+
+          {/* Glossy top-half highlight — the convex sheen real icons carry. */}
+          <div
             style={{
-              position: "relative",
-              fontSize: SIZE * 0.5,
-              fontWeight: 600,
-              color: fg,
-              fontFamily: "var(--os-font)",
-              lineHeight: 1,
-              textShadow: "0 1px 1.5px rgba(0,0,0,0.3)",
+              position: "absolute",
+              inset: 0,
+              borderRadius: radius,
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 42%, rgba(255,255,255,0) 56%)",
+              pointerEvents: "none",
             }}
-          >
-            {app.letter}
-          </span>
-        ) : (
-          <Glyph
-            size={SIZE * 0.52}
-            strokeWidth={app.fill ? 1.5 : 2.25}
-            color={fg}
-            fill={app.fill ? fg : "none"}
-            style={{ filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))", position: "relative" }}
           />
-        )}
-      </div>
+
+          {/* Fallback content shown until/unless a real icon image loads. */}
+          {!showImg && app.letter ? (
+            <span
+              style={{
+                position: "relative",
+                fontSize: SIZE * 0.5,
+                fontWeight: 600,
+                color: fg,
+                fontFamily: "var(--os-font)",
+                lineHeight: 1,
+                textShadow: "0 1px 1.5px rgba(0,0,0,0.3)",
+              }}
+            >
+              {app.letter}
+            </span>
+          ) : !showImg ? (
+            <Glyph
+              size={SIZE * 0.52}
+              strokeWidth={app.fill ? 1.5 : 2.25}
+              color={fg}
+              fill={app.fill ? fg : "none"}
+              style={{ filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))", position: "relative" }}
+            />
+          ) : null}
+        </div>
+      )}
 
       {/* Running indicator — pinned in the bottom padding band. */}
       {app.dot && (

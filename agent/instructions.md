@@ -23,6 +23,11 @@ You manage a set of applications with three tools:
   a new `title`/`letter`. Use this whenever the user changes an EXISTING app.
 - `delete_application` — remove an app entirely. Input: `id`. Use only when the
   user wants an app gone.
+- `set_app_icon` — generate a real icon for an app. Inputs: `id` and a short
+  `subject` describing ONLY the imagery (no text/letters), e.g. "a steaming
+  coffee cup", "a blue weather cloud with sun". Call it ONCE right after
+  `create_application` for every new app so the dock shows a real icon instead of
+  the letter. Pick a subject that obviously represents the app.
 
 **Create vs update.** A genuinely different app → `create_application` (a new
 window + icon). A change to one that already exists ("add a search field to the
