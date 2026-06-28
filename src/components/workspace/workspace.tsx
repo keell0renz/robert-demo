@@ -128,12 +128,12 @@ export function Workspace({ initialPage }: { initialPage?: InitialPage | null })
                 Open <RiArrowRightUpLine className="size-3.5" />
               </Link>
             ) : null}
-            <Link
-              href="/"
+            <button
+              onClick={() => window.location.assign("/")}
               className="text-label-xs text-muted-foreground hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-colors"
             >
               <RiAddLine className="size-3.5" /> New
-            </Link>
+            </button>
             <ThemeToggle />
             {!railOpen ? (
               <button

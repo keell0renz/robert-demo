@@ -6,9 +6,21 @@ import type { IconName } from "../schema";
 
 type Item = { label: string; icon?: IconName };
 
-// PRIMITIVE: Sidebar — source list with vibrancy + a selection pill.
-export function Sidebar({ items = [], selected = 0 }: { items?: Item[]; selected?: number }) {
-  const [sel, setSel] = useState(selected);
+// PRIMITIVE: Sidebar — source list with vibrancy + a selection pill. Selection
+// is internal by default; pass `onSelect` to make it controlled (NavShell does
+// this so clicking an item navigates to that item's page).
+export function Sidebar({
+  items = [],
+  selected = 0,
+  onSelect,
+}: {
+  items?: Item[];
+  selected?: number;
+  onSelect?: (index: number) => void;
+}) {
+  const [internal, setInternal] = useState(selected);
+  const sel = onSelect ? selected : internal;
+  const pick = (i: number) => (onSelect ? onSelect(i) : setInternal(i));
   return (
     <div
       style={{
@@ -29,7 +41,7 @@ export function Sidebar({ items = [], selected = 0 }: { items?: Item[]; selected
         return (
           <div
             key={i}
-            onClick={() => setSel(i)}
+            onClick={() => pick(i)}
             style={{
               height: 28,
               display: "flex",

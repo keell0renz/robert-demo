@@ -27,6 +27,13 @@ const icon = z.enum(ICONS);
 const sidebarItem = z.object({
   label: z.string(),
   icon: icon.optional(),
+  // When present, this item is a navigation destination — selecting it in the
+  // sidebar swaps the content area to this page (a list of nodes, same shape as
+  // a Content's children). Give EVERY item a `page` to build a multi-page app
+  // (System Settings, a mail client's folders). Omit `page` on all items for a
+  // source-list sidebar with one shared Content pane (the static idiom).
+  // `z.lazy` defers the recursive reference to UINodeSchema (declared below).
+  page: z.array(z.lazy((): z.ZodType<UINode> => UINodeSchema)).optional(),
 });
 
 // Each node type declares exactly the props it accepts. Flat, semantic,

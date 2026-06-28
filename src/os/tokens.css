@@ -61,8 +61,11 @@
   --os-wallpaper: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
 }
 
-@media (prefers-color-scheme: dark) {
-  .os-root {
+/* Dark mode is driven by the app's theme toggle, NOT the OS setting. next-themes
+   puts `.dark` on <html> (and, because `enableSystem` is on, also adds it when
+   theme=system resolves to dark) — so keying off `.dark` makes the generated
+   macOS UI follow the toggle and still honor the system default. */
+.dark .os-root {
     --os-text: rgba(255, 255, 255, 0.85);
     --os-text-secondary: rgba(255, 255, 255, 0.55);
     --os-text-tertiary: rgba(255, 255, 255, 0.25);
@@ -87,7 +90,6 @@
     --os-shadow-window: 0 22px 70px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
     --os-shadow-floating: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.1);
     --os-wallpaper: linear-gradient(135deg, #2b3a55 0%, #44318d 100%);
-  }
 }
 
 /* Accessibility: "Reduce transparency" strips glass to opaque. The UI still
@@ -108,10 +110,6 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Trim the trailing separator on the last row of a grouped list. */
-.os-root .os-row:last-child {
-  border-bottom: none;
-}
 .os-root .os-btn:active {
   filter: brightness(0.95);
 }

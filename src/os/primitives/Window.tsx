@@ -2,9 +2,10 @@
 
 import { useState, type ReactNode } from "react";
 
-// PRIMITIVE: Window — the frame + title bar with traffic lights baked in.
-// Children lay out in a row (Sidebar + Content, or just Content).
-export function Window({ title = "Untitled", children }: { title?: string; children?: ReactNode }) {
+// The window chrome (rounded frame + title bar + a flex body). Shared by the
+// plain Window primitive and the navigation-aware NavShell so both look
+// identical and only the body wiring differs.
+export function WindowFrame({ title = "Untitled", children }: { title?: string; children?: ReactNode }) {
   return (
     <div
       style={{
@@ -22,6 +23,14 @@ export function Window({ title = "Untitled", children }: { title?: string; child
       <div style={{ display: "flex", flex: 1, minHeight: 420 }}>{children}</div>
     </div>
   );
+}
+
+// PRIMITIVE: Window — the frame + title bar with traffic lights baked in.
+// Children lay out in a row (Sidebar + Content, or just Content). For a
+// sidebar whose items each carry a `page`, the renderer swaps in NavShell so
+// selection actually navigates.
+export function Window({ title = "Untitled", children }: { title?: string; children?: ReactNode }) {
+  return <WindowFrame title={title}>{children}</WindowFrame>;
 }
 
 function TitleBar({ title }: { title: string }) {

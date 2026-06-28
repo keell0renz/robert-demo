@@ -55,7 +55,7 @@ export function TextField({
   );
   if (!label) return field;
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <label style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
       <span style={{ fontSize: 11, color: "var(--os-text-secondary)" }}>{label}</span>
       {field}
     </label>

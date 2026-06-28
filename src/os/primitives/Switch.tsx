@@ -41,7 +41,7 @@ export function Switch({ label, on = false }: { label?: string; on?: boolean }) 
   );
   if (!label) return toggle;
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--os-text)" }}>
+    <label style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, color: "var(--os-text)" }}>
       <span style={{ flex: 1 }}>{label}</span>
       {toggle}
     </label>

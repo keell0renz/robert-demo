@@ -3,7 +3,8 @@ import { Icon } from "./icons";
 import type { IconName } from "../schema";
 
 // PRIMITIVE: ListRow — one row of a source/detail list. Best inside a Card,
-// where rows get full-width hairline separators (last one trimmed by CSS).
+// where the renderer draws the hairline separators between rows. Keeps its own
+// 14px inset so it aligns identically whether grouped or standalone.
 export function ListRow({
   title,
   subtitle,
@@ -24,9 +25,10 @@ export function ListRow({
         display: "flex",
         alignItems: "center",
         gap: 10,
+        width: "100%",
         minHeight: subtitle ? 48 : 36,
         padding: "0 14px",
-        borderBottom: "1px solid var(--os-hairline)",
+        boxSizing: "border-box",
       }}
     >
       {icon ? (

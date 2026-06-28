@@ -26,7 +26,9 @@ export function Card({ title, children }: { title?: string; children?: ReactNode
           {title}
         </div>
       ) : null}
-      <div style={{ padding: "4px 0" }}>{children}</div>
+      {/* Children are pre-composed into grouped rows by the renderer (inset +
+          separators live there), so the body is a bare edge-to-edge stack. */}
+      <div>{children}</div>
     </div>
   );
 }
