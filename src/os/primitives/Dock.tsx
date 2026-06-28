@@ -18,6 +18,9 @@ type App = {
   fg?: string;
   fill?: boolean;
   dot?: boolean;
+  // When set, the tile shows this character instead of the glyph (lettered app
+  // icons — our stand-in until real icon generation exists).
+  letter?: string;
 };
 
 // macOS-ish app set. Gradients are multi-stop and vivid so each tile reads with
@@ -55,6 +58,34 @@ const SIZE = 50;   // fixed icon size — no magnification
 const GAP = 12;    // breathing room between icons
 const PAD_Y = 9;   // vertical glass padding — kept equal top & bottom
 
+// One generated app on the desktop, as the dock sees it.
+export type DockApp = {
+  key: string;
+  letter: string;
+  title: string;
+  running: boolean;
+  onClick: () => void;
+};
+
+// Vivid macOS-y tile gradients. We can't generate real icons yet, so each app is
+// a lettered squircle; the colour is picked from its letter so the same app
+// keeps the same hue and adjacent apps differ.
+const LETTER_GRADS = [
+  "linear-gradient(180deg,#5ac8fa 0%,#0a84ff 100%)",
+  "linear-gradient(180deg,#ff9f0a 0%,#ff6a00 100%)",
+  "linear-gradient(180deg,#5ee084 0%,#13b531 100%)",
+  "linear-gradient(180deg,#ff6f91 0%,#ff2d55 100%)",
+  "linear-gradient(180deg,#bf5af2 0%,#7c3aed 100%)",
+  "linear-gradient(180deg,#64d2ff 0%,#0aa5c2 100%)",
+  "linear-gradient(180deg,#ffd60a 0%,#ff9f0a 100%)",
+  "linear-gradient(180deg,#a2845e 0%,#6f5440 100%)",
+];
+
+function gradForLetter(letter: string): string {
+  const c = letter.toUpperCase().charCodeAt(0) || 65;
+  return LETTER_GRADS[c % LETTER_GRADS.length];
+}
+
 // PRIMITIVE: Dock — the liquid-glass shelf of app icons along the desktop floor.
 // The glass (Layers 1–3) lives in the `.os-glass` CSS class. Each icon is a
 // glossy squircle (gradient core + top sheen + inner rim + drop shadow) so the
@@ -62,11 +93,14 @@ const PAD_Y = 9;   // vertical glass padding — kept equal top & bottom
 export function Dock({
   onAgentClick,
   agentRunning,
+  apps = [],
 }: {
   // When provided, the Agent tile is shown as the live, clickable app (leftmost,
   // set apart by a divider). Omitted (e.g. the static /demo desktop) → no Agent.
   onAgentClick?: () => void;
   agentRunning?: boolean;
+  // The generated apps to show between Agent and Trash (lettered icons).
+  apps?: DockApp[];
 } = {}) {
   return (
     <div
@@ -90,9 +124,26 @@ export function Dock({
         }}
       >
         {onAgentClick ? (
-          // Workspace dock: just the one real app (Agent) and the trash. The
-          // decorative system apps are intentionally left off for now.
-          <DockIcon app={{ ...AGENT, dot: agentRunning }} onClick={onAgentClick} />
+          // Workspace dock: the Agent (the one real app), then a lettered tile
+          // per generated app, then the trash.
+          <>
+            <DockIcon app={{ ...AGENT, dot: agentRunning }} onClick={onAgentClick} />
+            {apps.length > 0 ? <Divider /> : null}
+            {apps.map((app) => (
+              <DockIcon
+                key={app.key}
+                app={{
+                  name: app.title,
+                  glyph: Sparkles, // unused — letter takes over
+                  grad: gradForLetter(app.letter),
+                  letter: app.letter.toUpperCase(),
+                  fg: "#ffffff",
+                  dot: app.running,
+                }}
+                onClick={app.onClick}
+              />
+            ))}
+          </>
         ) : (
           // Static /demo desktop: the full decorative set.
           APPS.map((app) => <DockIcon key={app.name} app={app} />)
@@ -191,13 +242,29 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
             pointerEvents: "none",
           }}
         />
-        <Glyph
-          size={SIZE * 0.52}
-          strokeWidth={app.fill ? 1.5 : 2.25}
-          color={fg}
-          fill={app.fill ? fg : "none"}
-          style={{ filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))", position: "relative" }}
-        />
+        {app.letter ? (
+          <span
+            style={{
+              position: "relative",
+              fontSize: SIZE * 0.5,
+              fontWeight: 600,
+              color: fg,
+              fontFamily: "var(--os-font)",
+              lineHeight: 1,
+              textShadow: "0 1px 1.5px rgba(0,0,0,0.3)",
+            }}
+          >
+            {app.letter}
+          </span>
+        ) : (
+          <Glyph
+            size={SIZE * 0.52}
+            strokeWidth={app.fill ? 1.5 : 2.25}
+            color={fg}
+            fill={app.fill ? fg : "none"}
+            style={{ filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))", position: "relative" }}
+          />
+        )}
       </div>
 
       {/* Running indicator — pinned in the bottom padding band. */}

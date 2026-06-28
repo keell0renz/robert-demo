@@ -99,10 +99,12 @@ export function WindowFrame({
   children,
   z,
   onClose,
+  onMinimize,
   hidden,
   placement = "center",
   defaultWidth,
   defaultHeight,
+  offset = 0,
 }: {
   title?: string;
   children?: ReactNode;
@@ -112,6 +114,8 @@ export function WindowFrame({
   // Wires the red traffic light. Used by the Agent window so closing it just
   // hides the app (its chat state lives in the workspace and persists).
   onClose?: () => void;
+  // Wires the yellow traffic light — minimize ("roll down" to the dock).
+  onMinimize?: () => void;
   // Keep the frame mounted but visually gone — preserves measured geometry so
   // reopening the Agent app restores its exact position/size.
   hidden?: boolean;
@@ -120,6 +124,8 @@ export function WindowFrame({
   placement?: "center" | "right";
   defaultWidth?: number;
   defaultHeight?: number;
+  // Cascade step (e.g. window index) so stacked windows don't perfectly overlap.
+  offset?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box | null>(null);
@@ -160,10 +166,13 @@ export function WindowFrame({
     const { pw, ph } = stageSize();
     const w = clamp(defaultWidth ?? DEFAULT_W, MIN_W, Math.max(MIN_W, pw - 32));
     const h = clamp(defaultHeight ?? el.offsetHeight, MIN_H, Math.max(MIN_H, ph - 32));
-    const x = placement === "right" ? Math.max(0, pw - w - 28) : Math.max(0, (pw - w) / 2);
-    const y = placement === "right" ? Math.max(24, (ph - h) / 2) : Math.max(0, (ph - h) / 2);
+    const cascade = (offset % 6) * 30; // wrap so deep stacks stay on-screen
+    const baseX = placement === "right" ? Math.max(0, pw - w - 28) : Math.max(0, (pw - w) / 2);
+    const baseY = placement === "right" ? Math.max(24, (ph - h) / 2) : Math.max(0, (ph - h) / 2);
+    const x = clamp(baseX + cascade, 0, Math.max(0, pw - w));
+    const y = clamp(baseY + cascade, 0, Math.max(0, ph - h));
     setBox({ x, y, w, h });
-  }, [box, defaultWidth, defaultHeight, placement]);
+  }, [box, defaultWidth, defaultHeight, placement, offset]);
 
   // Snap the window into a fractional region of the stage (green-button menu).
   // The usable area is the full stage width and the height minus the dock band,
@@ -264,7 +273,7 @@ export function WindowFrame({
   return (
     <div ref={ref} style={wrapStyle}>
       <div style={frameStyle}>
-        <TitleBar title={title} dragging={dragging} onDragStart={begin("drag")} onArrange={arrange} onClose={onClose} />
+        <TitleBar title={title} dragging={dragging} onDragStart={begin("drag")} onArrange={arrange} onClose={onClose} onMinimize={onMinimize} />
         <div style={{ display: "flex", flex: 1, minHeight: positioned ? 0 : 420, overflow: "hidden" }}>
           {children}
         </div>
@@ -296,12 +305,14 @@ function TitleBar({
   onDragStart,
   onArrange,
   onClose,
+  onMinimize,
 }: {
   title: string;
   dragging: boolean;
   onDragStart: (e: ReactPointerEvent) => void;
   onArrange: (r: Region) => void;
   onClose?: () => void;
+  onMinimize?: () => void;
 }) {
   return (
     <div
@@ -321,7 +332,7 @@ function TitleBar({
         zIndex: 10,
       }}
     >
-      <TrafficLights onArrange={onArrange} onClose={onClose} />
+      <TrafficLights onArrange={onArrange} onClose={onClose} onMinimize={onMinimize} />
       <div
         style={{
           position: "absolute",
@@ -342,7 +353,15 @@ function TitleBar({
 
 // The three window buttons. The green one carries the macOS tiling menu: hover
 // it (or press and hold) to reveal Move & Resize / Fill & Arrange presets.
-function TrafficLights({ onArrange, onClose }: { onArrange: (r: Region) => void; onClose?: () => void }) {
+function TrafficLights({
+  onArrange,
+  onClose,
+  onMinimize,
+}: {
+  onArrange: (r: Region) => void;
+  onClose?: () => void;
+  onMinimize?: () => void;
+}) {
   const [hover, setHover] = useState(false);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -395,7 +414,7 @@ function TrafficLights({ onArrange, onClose }: { onArrange: (r: Region) => void;
 
   const lights = [
     { c: "var(--os-tl-red)", g: "×", red: true },
-    { c: "var(--os-tl-yellow)", g: "−" },
+    { c: "var(--os-tl-yellow)", g: "−", yellow: true },
     { c: "var(--os-tl-green)", g: "+", green: true },
   ];
 
@@ -418,7 +437,13 @@ function TrafficLights({ onArrange, onClose }: { onArrange: (r: Region) => void;
       {lights.map((l, i) => (
         <span
           key={i}
-          onClick={l.red && onClose ? () => onClose() : undefined}
+          onClick={
+            l.red && onClose
+              ? () => onClose()
+              : l.yellow && onMinimize
+                ? () => onMinimize()
+                : undefined
+          }
           onPointerDown={
             l.green
               ? () => {

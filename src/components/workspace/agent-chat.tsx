@@ -14,8 +14,8 @@ const EXAMPLES = [
   "A customs declarations dashboard with a sidebar and a pending list",
 ];
 
-// One projected message part. Eve emits text parts and the save_page
-// dynamic-tool part in the order they occur, which is exactly how we render
+// One projected message part. Eve emits text parts and the app-tool
+// dynamic-tool parts in the order they occur, which is exactly how we render
 // them — text, then the tool status, then any follow-up text on its own line.
 type MessagePart = {
   type: string;
@@ -24,8 +24,8 @@ type MessagePart = {
   state?: string;
 };
 
-// The conversation + composer that lives in the right rail. Wired to eve's
-// projected messages (text parts + the save_page dynamic-tool part).
+// The conversation + composer that lives in the Agent app window. Wired to eve's
+// projected messages (text parts + the create/update/delete app dynamic-tools).
 export function AgentChat({
   messages,
   isBusy,
@@ -166,6 +166,20 @@ function relativeTime(date: Date): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+// The inline marker shown at an app tool's position in the chat.
+function toolVerb(toolName?: string): string | null {
+  switch (toolName) {
+    case "create_application":
+      return "Designed";
+    case "update_application":
+      return "Updated";
+    case "delete_application":
+      return "Removed";
+    default:
+      return null;
+  }
+}
+
 function Message({ message, pending }: { message: EveMessage; pending: boolean }) {
   if (message.role === "user") {
     return (
@@ -179,12 +193,12 @@ function Message({ message, pending }: { message: EveMessage; pending: boolean }
 
   const parts = message.parts as unknown as MessagePart[];
   const designed = parts.some(
-    (p) => p.type === "dynamic-tool" && p.toolName === "save_page" && p.state === "output-available",
+    (p) => p.type === "dynamic-tool" && toolVerb(p.toolName) && p.state === "output-available",
   );
   const hasText = parts.some((p) => p.type === "text" && p.text?.trim());
-  // Shimmer while the turn is still working and hasn't saved yet; once the page
-  // is saved it flips to a static "Designed" rendered inline (below). Each is its
-  // own line — never merged with the model's prose.
+  // Shimmer while the turn is still working and hasn't acted yet; once an app
+  // tool lands it flips to a static "Designed/Updated/Removed" marker inline
+  // (below). Each is its own line — never merged with the model's prose.
   const showDesigning = pending && hasText && !designed;
 
   return (
@@ -199,14 +213,11 @@ function Message({ message, pending }: { message: EveMessage; pending: boolean }
             </div>
           ) : null;
         }
-        if (
-          part.type === "dynamic-tool" &&
-          part.toolName === "save_page" &&
-          part.state === "output-available"
-        ) {
+        const verb = part.type === "dynamic-tool" ? toolVerb(part.toolName) : null;
+        if (verb && part.state === "output-available") {
           return (
             <div key={i} className="text-muted-foreground text-paragraph-sm font-medium">
-              Designed
+              {verb}
             </div>
           );
         }

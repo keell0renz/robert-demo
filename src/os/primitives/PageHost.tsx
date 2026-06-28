@@ -13,12 +13,17 @@ export type PushFn = (title: string | undefined, nodes: UINode[]) => void;
 export const PageNavContext = createContext<PushFn | null>(null);
 
 export function PageHost({ nodes }: { nodes: UINode[] }) {
-  const [stack, setStack] = useState<{ title?: string; nodes: UINode[] }[]>([{ nodes }]);
-  const push: PushFn = (title, next) => setStack((s) => [...s, { title, nodes: next }]);
-  const back = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  // Only the drill-in frames live in state. The BASE page is always the current
+  // `nodes` prop, so when the agent revises the design the new content shows live
+  // (seeding the base into useState would freeze it at mount — a revised tree
+  // would only appear after a remount/reload).
+  const [pushed, setPushed] = useState<{ title?: string; nodes: UINode[] }[]>([]);
+  const push: PushFn = (title, next) => setPushed((s) => [...s, { title, nodes: next }]);
+  const back = () => setPushed((s) => s.slice(0, -1));
 
-  const top = stack[stack.length - 1];
-  const parentTitle = stack.length > 1 ? (stack[stack.length - 2].title ?? "Back") : undefined;
+  const frames = [{ title: undefined as string | undefined, nodes }, ...pushed];
+  const top = frames[frames.length - 1];
+  const parentTitle = frames.length > 1 ? (frames[frames.length - 2].title ?? "Back") : undefined;
 
   return (
     <div
@@ -57,7 +62,7 @@ export function PageHost({ nodes }: { nodes: UINode[] }) {
       ) : null}
       {/* key on depth so each frame's controls mount fresh */}
       <PageNavContext.Provider value={push}>
-        <div key={stack.length} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div key={frames.length} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {top.nodes.map((node, i) => (
             <Render key={i} node={node} />
           ))}

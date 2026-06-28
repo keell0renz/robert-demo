@@ -15,6 +15,17 @@ type NavItem = { label?: string; icon?: IconName; page?: UINode[] };
 // sidebar finally *navigates* instead of just highlighting. State is reset per
 // page (`key={sel}`) so each page's controls start fresh.
 export function NavShell({ title, sidebar }: { title?: string; sidebar: UINode }) {
+  return (
+    <WindowFrame title={title}>
+      <NavBody sidebar={sidebar} />
+    </WindowFrame>
+  );
+}
+
+// The navigation body WITHOUT the window frame — the Sidebar + the selected
+// page. Split out so the desktop's window manager can wrap it in a frame it owns
+// (close/minimize/z/position) while keeping the exact same nav behaviour.
+export function NavBody({ sidebar }: { sidebar: UINode }) {
   const items = (sidebar.props?.items as NavItem[] | undefined) ?? [];
   const initial = Number(sidebar.props?.selected ?? 0);
   const clamp = (n: number) => Math.min(Math.max(0, n), Math.max(0, items.length - 1));
@@ -24,7 +35,7 @@ export function NavShell({ title, sidebar }: { title?: string; sidebar: UINode }
   const page = current?.page;
 
   return (
-    <WindowFrame title={title}>
+    <>
       <Sidebar
         items={items.map((it) => ({ label: it.label ?? "", icon: it.icon }))}
         selected={sel}
@@ -35,7 +46,7 @@ export function NavShell({ title, sidebar }: { title?: string; sidebar: UINode }
       ) : (
         <EmptyPage label={current?.label} />
       )}
-    </WindowFrame>
+    </>
   );
 }
 

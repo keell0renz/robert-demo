@@ -1,4 +1,5 @@
 export { Render, Desktop } from "./Render";
+export { AppWindow } from "./AppWindow";
 export { REGISTRY } from "./registry";
 export { UINodeSchema, SavePageSchema, ICONS } from "./schema";
 export type { SavePageInput, IconName } from "./schema";
