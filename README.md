@@ -60,7 +60,7 @@ The agent is an [eve](https://eve.dev) app under [`agent/`](./agent):
 
 - [`agent/agent.ts`](./agent/agent.ts) — runtime config; model is `anthropic("claude-opus-4-8")`.
 - [`agent/instructions.md`](./agent/instructions.md) — the always-on system prompt.
-- [`agent/tools/`](./agent/tools) — typed tools (`get_weather.ts` is a placeholder; replace with the real page-building tools).
+- [`agent/tools/save_page.ts`](./agent/tools/save_page.ts) — the one real tool: **upserts the UI tree by `ctx.session.id`** so follow-up turns amend the same page.
 - [`agent/channels/eve.ts`](./agent/channels/eve.ts) — the HTTP channel + auth policy.
 
 [`next.config.ts`](./next.config.ts) wraps the Next config with `withEve()`, so
@@ -75,9 +75,37 @@ POST /eve/v1/session/:id          # follow-up (with continuationToken)
 
 Inspect the discovered agent surface any time with `npx eve info`.
 
-The home page (`src/app/page.tsx`) takes a prompt, sends it to the agent with
-`useEveAgent` (`eve/react`), and surfaces the `save_page` result as a link to
-the generated page.
+## The workspace (host UI)
+
+The product is one client surface, [`Workspace`](./src/components/workspace/workspace.tsx),
+rendered by both routes:
+
+- **`/`** — a landing hero with a prompt composer. The first message starts a
+  durable eve session; the moment the agent's first `save_page` lands, the URL
+  becomes **`/{id}` in place** (`history.replaceState` — no navigation, the
+  session keeps streaming into the same mounted component).
+- **`/{id}`** — the same workspace, hydrated from the DB: the macOS artifact on
+  the left, a **collapsible/resizable right rail** holding the agent chat. New
+  messages **amend the page live** — the artifact zone re-renders from the
+  latest `save_page` tool input as it streams. No links, no new pages.
+
+The rail reproduces the customs-os copilot pattern (a fixed `<aside>` sliding via
+`translateX` + `padding-right` push on the main wrapper; width persisted to
+`localStorage`; ⌘I toggles it). The conversation is persisted (`chat_events` +
+`chat_session` columns, via the [`persistChat`](./src/app/actions.ts) server
+action in `onFinish`), so revisiting `/{id}` **resumes the same durable session**
+and amends keep hitting the same row.
+
+### Host chrome (mirror-ui)
+
+The host UI uses the **mirror-ui (AlignUI) design system copied from customs-os**:
+the token foundation ([`src/styles/mirror-ui.css`](./src/styles/mirror-ui.css) +
+[`globals.css`](./src/app/globals.css)), `cn`/`tv` utils, a subset of
+[`components/ui`](./src/components/ui), and the
+[chat composer block](./src/components/blocks/chat). `mirror-ui` on `<body>`
+(see [`layout.tsx`](./src/app/layout.tsx)) activates it; `next-themes` drives
+light/dark. This is **separate from** the macOS generative system below — the
+agent only composes the macOS primitives, never the host chrome.
 
 ## The macOS generative UI system (`src/os/`)
 
@@ -106,9 +134,10 @@ unrenderable, not just ugly — the guardrail is structural.
   underneath. `Desktop` wraps a tree in a wallpaper frame.
 
 Flow: prompt → agent composes a tree → [`save_page`](./agent/tools/save_page.ts)
-validates + inserts → returns `/page/{id}` → that route loads the row and renders
-`<Desktop node={tree} />`. See [`/demo`](./src/app/demo/page.tsx) for the same
-renderer driven by a static `EXAMPLE_TREE`, no DB or agent.
+validates + upserts (by session) → the workspace renders `<Render node={tree} />`
+in the artifact stage and the URL becomes `/{id}`. See
+[`/demo`](./src/app/demo/page.tsx) for the renderer driven by a static
+`EXAMPLE_TREE`, no DB or agent.
 
 Not yet built (upgrade seams): a self-correcting retry loop that feeds Zod
 errors back to the model, named-action indirection for behavior, and

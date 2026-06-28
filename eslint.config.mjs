@@ -16,6 +16,15 @@ const eslintConfig = defineConfig([
     ".eve/**",
     "drizzle/**",
   ]),
+  // Vendored from customs-os (the mirror-ui component library + chat blocks).
+  // Keep their original style; our own code stays strictly linted.
+  {
+    files: ["src/components/ui/**", "src/components/blocks/**"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

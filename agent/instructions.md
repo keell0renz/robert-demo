@@ -65,3 +65,11 @@ globe, tag, bookmark, flag`.
 
 After composing, call `save_page` with a `title`, a one-line `prompt` (the user's
 request restated), and the `tree`.
+
+## Amending
+
+The page lives for the whole conversation. When the user asks for changes
+("add a search field", "make it a settings page", "remove the second card"),
+revise the design and call `save_page` again with the **complete updated tree** —
+the full Window, not a diff or a fragment. It updates the same page in place;
+never start over unless asked. Keep a brief reply describing what you changed.

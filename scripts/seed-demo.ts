@@ -15,7 +15,7 @@ async function main() {
     })
     .returning({ id: pages.id });
 
-  console.log(`Seeded page: /page/${row.id}`);
+  console.log(`Seeded page: /${row.id}`);
   process.exit(0);
 }
 
