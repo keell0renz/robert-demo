@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Compass, Mail, MessageCircle, Image as ImageIcon, MapPin, Calendar,
-  Music, Settings, Terminal, NotebookPen, Camera, Phone, Trash2, Sparkles,
+  Music, Settings, Terminal, NotebookPen, Camera, Phone, Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,9 +24,6 @@ type App = {
   // A generated icon image to show on the tile (falls back to letter/glyph on
   // error or while missing).
   iconUrl?: string | null;
-  // Render WITHOUT the squircle tile — just the glyph, like the real macOS
-  // Trash (a bare can sitting on the dock glass).
-  bare?: boolean;
 };
 
 // macOS-ish app set. Gradients are multi-stop and vivid so each tile reads with
@@ -46,11 +43,6 @@ const APPS: App[] = [
   { name: "Terminal", glyph: Terminal, grad: "linear-gradient(180deg,#3c3c42 0%,#222226 55%,#0e0e10 100%)" },
   { name: "Settings", glyph: Settings, grad: "linear-gradient(180deg,#e2e4e8 0%,#b9bdc4 55%,#9298a1 100%)", fg: "#5b6068" },
 ];
-
-// Trash is a BARE can on the dock glass (no squircle tile), like real macOS.
-const TRASH: App = {
-  name: "Trash", glyph: Trash2, grad: "transparent", fg: "rgba(255,255,255,0.92)", bare: true,
-};
 
 // The Agent — the ONE real app on this desktop. Uses a generated logo (with the
 // indigo squircle as fallback if the asset is missing) so it sits in line with
@@ -157,10 +149,6 @@ export function Dock({
           // Static /demo desktop: the full decorative set.
           APPS.map((app) => <DockIcon key={app.name} app={app} />)
         )}
-
-        {/* macOS divider before the "files/trash" section. */}
-        <Divider />
-        <DockIcon app={TRASH} />
       </div>
     </div>
   );
@@ -231,19 +219,8 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
         {app.name}
       </div>
 
-      {app.bare ? (
-        /* Bare can on the dock glass — no tile (real macOS Trash). */
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Glyph
-            size={SIZE * 0.78}
-            strokeWidth={1.5}
-            color={fg}
-            style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))" }}
-          />
-        </div>
-      ) : (
-        /* The squircle. */
-        <div
+      {/* The squircle. */}
+      <div
           style={{
             position: "absolute",
             inset: 0,
@@ -308,7 +285,6 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
             />
           ) : null}
         </div>
-      )}
 
       {/* Running indicator — pinned in the bottom padding band. */}
       {app.dot && (
