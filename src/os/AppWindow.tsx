@@ -16,6 +16,7 @@ type FrameControls = {
   defaultWidth?: number;
   defaultHeight?: number;
   offset?: number;
+  storageKey?: string;
 };
 
 // A generated app rendered into a manager-owned window. Same Window-shape logic

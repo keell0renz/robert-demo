@@ -33,6 +33,35 @@ type Box = { x: number; y: number; w: number; h: number };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), Math.max(lo, hi));
 
+// Per-window geometry persistence so a hard refresh restores each window where
+// the user left it (instead of re-centering / re-cascading into a pile).
+const GEO_PREFIX = "oswin:";
+
+function readBox(key: string): Box | null {
+  try {
+    const raw = window.localStorage.getItem(GEO_PREFIX + key);
+    if (!raw) return null;
+    const b = JSON.parse(raw);
+    if (
+      b &&
+      [b.x, b.y, b.w, b.h].every((n) => typeof n === "number" && Number.isFinite(n))
+    ) {
+      return b as Box;
+    }
+  } catch {
+    /* ignore malformed/disabled storage */
+  }
+  return null;
+}
+
+function writeBox(key: string, box: Box) {
+  try {
+    window.localStorage.setItem(GEO_PREFIX + key, JSON.stringify(box));
+  } catch {
+    /* ignore quota/disabled storage */
+  }
+}
+
 type ResizeDir = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 const CURSOR: Record<ResizeDir, string> = {
@@ -105,6 +134,7 @@ export function WindowFrame({
   defaultWidth,
   defaultHeight,
   offset = 0,
+  storageKey,
 }: {
   title?: string;
   children?: ReactNode;
@@ -126,6 +156,9 @@ export function WindowFrame({
   defaultHeight?: number;
   // Cascade step (e.g. window index) so stacked windows don't perfectly overlap.
   offset?: number;
+  // Stable id (e.g. the app's db id) to persist this window's position/size
+  // across reloads. Omitted → no persistence (measure + cascade each mount).
+  storageKey?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box | null>(null);
@@ -164,6 +197,22 @@ export function WindowFrame({
     const el = ref.current;
     if (!el || box) return;
     const { pw, ph } = stageSize();
+
+    // Restore the saved position/size first (clamped to the current stage so a
+    // smaller window or different display can't strand it off-screen).
+    if (storageKey) {
+      const saved = readBox(storageKey);
+      if (saved) {
+        const w = clamp(saved.w, MIN_W, Math.max(MIN_W, pw));
+        const h = clamp(saved.h, MIN_H, Math.max(MIN_H, ph));
+        const x = clamp(saved.x, 0, Math.max(0, pw - w));
+        const y = clamp(saved.y, 0, Math.max(0, ph - h));
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot measure/restore on mount (guarded by `if (box) return`)
+        setBox({ x, y, w, h });
+        return;
+      }
+    }
+
     const w = clamp(defaultWidth ?? DEFAULT_W, MIN_W, Math.max(MIN_W, pw - 32));
     const h = clamp(defaultHeight ?? el.offsetHeight, MIN_H, Math.max(MIN_H, ph - 32));
     const cascade = (offset % 6) * 30; // wrap so deep stacks stay on-screen
@@ -172,7 +221,13 @@ export function WindowFrame({
     const x = clamp(baseX + cascade, 0, Math.max(0, pw - w));
     const y = clamp(baseY + cascade, 0, Math.max(0, ph - h));
     setBox({ x, y, w, h });
-  }, [box, defaultWidth, defaultHeight, placement, offset]);
+  }, [box, defaultWidth, defaultHeight, placement, offset, storageKey]);
+
+  // Persist geometry whenever it settles (not mid-drag — that would hammer
+  // localStorage every frame).
+  useEffect(() => {
+    if (box && storageKey && !active) writeBox(storageKey, box);
+  }, [box, active, storageKey]);
 
   // Snap the window into a fractional region of the stage (green-button menu).
   // The usable area is the full stage width and the height minus the dock band,

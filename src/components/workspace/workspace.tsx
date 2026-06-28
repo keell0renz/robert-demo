@@ -182,6 +182,7 @@ export function Workspace({
               tree={app.tree!}
               z={z(app.key)}
               offset={i + 1}
+              storageKey={app.id ?? app.key}
               hidden={winState[app.key] !== "open"}
               onClose={() => setWindow(app.key, "closed")}
               onMinimize={() => setWindow(app.key, "minimized")}
@@ -193,6 +194,7 @@ export function Workspace({
           <WindowFrame
             title="Agent"
             z={z("agent")}
+            storageKey="agent"
             hidden={winState.agent !== "open"}
             onClose={() => setWindow("agent", "closed")}
             onMinimize={() => setWindow("agent", "minimized")}
