@@ -23,13 +23,21 @@ export default defineTool({
   }),
   async execute({ id, subject }, ctx) {
     const sessionId = ctx.session.id;
-    const icon = await generateAppIcon(subject);
-    const [row] = await db
-      .update(apps)
-      .set({ icon, updatedAt: new Date() })
-      .where(and(eq(apps.id, id), eq(apps.sessionId, sessionId)))
-      .returning({ id: apps.id });
-    if (!row) return { id, ok: false, error: "No app with that id in this workspace." };
-    return { id: row.id, ok: true };
+    // CRITICAL: the tool result is fed back into the agent's context, so it must
+    // stay TINY. Never return (or let a thrown error carry) the icon's image
+    // data — a megabyte of base64 would blow the model's token limit. Catch
+    // everything and return only a short status.
+    try {
+      const icon = await generateAppIcon(subject);
+      const [row] = await db
+        .update(apps)
+        .set({ icon, updatedAt: new Date() })
+        .where(and(eq(apps.id, id), eq(apps.sessionId, sessionId)))
+        .returning({ id: apps.id });
+      if (!row) return { id, ok: false, error: "No app with that id in this workspace." };
+      return { id: row.id, ok: true };
+    } catch {
+      return { id, ok: false, error: "Icon generation failed." };
+    }
   },
 });
