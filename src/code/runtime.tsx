@@ -25,6 +25,30 @@ function requireShim(name: string): unknown {
   );
 }
 
+// Data helpers handed to every generated app as globals (no import needed). They
+// route through our same-origin /api/proxy so the app can call ANY public API
+// without tripping CORS. This is what lets the demo do real things — live clock,
+// weather, crypto price, a random joke — not just static UI.
+async function fetchJSON(url: string): Promise<unknown> {
+  const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+  if (!res.ok) {
+    let detail = "";
+    try {
+      detail = (await res.json())?.error ?? "";
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`fetchJSON failed (${res.status})${detail ? `: ${detail}` : ""}`);
+  }
+  return res.json();
+}
+
+async function fetchText(url: string): Promise<string> {
+  const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+  if (!res.ok) throw new Error(`fetchText failed (${res.status})`);
+  return res.text();
+}
+
 export function compileApp(source: string): CompiledResult {
   let js: string;
   try {
@@ -53,6 +77,8 @@ export function compileApp(source: string): CompiledResult {
       "useCallback",
       "useReducer",
       "Fragment",
+      "fetchJSON",
+      "fetchText",
       js,
     );
     run(
@@ -67,6 +93,8 @@ export function compileApp(source: string): CompiledResult {
       React.useCallback,
       React.useReducer,
       React.Fragment,
+      fetchJSON,
+      fetchText,
     );
 
     const exported = (mod.exports.default ?? mod.exports) as unknown;

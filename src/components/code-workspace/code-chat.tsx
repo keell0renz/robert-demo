@@ -9,9 +9,9 @@ import { PromptComposer } from "@/components/workspace/prompt-composer";
 import type { RecentCodePage } from "./code-workspace";
 
 const EXAMPLES = [
-  "A working calculator",
-  "A pomodoro timer that actually counts down",
-  "A to-do list I can add, check off, and delete items in",
+  "A live clock with the current date and time",
+  "A Bitcoin price ticker that refreshes from a public API",
+  "A random programming joke fetched from an API, with a button to get another",
 ];
 
 type MessagePart = {

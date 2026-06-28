@@ -34,7 +34,39 @@ The \`code\` you write is a JavaScript/TypeScript React module that is compiled 
 3. **Your component renders the app BODY only.** It is mounted *inside* a real macOS window chrome (the title bar, traffic-light buttons, drag/resize) that the desktop already provides. Do NOT draw your own window frame, title bar, or close buttons. Start from the content.
 4. **The root element must fill its window.** Make the outermost element \`style={{ height: "100%", display: "flex", flexDirection: "column" }}\` (or similar) and let inner regions scroll — the window can be resized.
 5. **Be genuinely interactive.** This path exists to show what a static spec can't: real \`useState\`, real event handlers, real logic. A calculator should calculate; a to-do list should add/remove/check items; a timer should tick with \`useEffect\`. Prefer a working feature over a screenshot of one.
-6. **Self-contained, no async data.** No network requests, no localStorage required, no timers left running without cleanup. Seed any data inline.
+6. **Live data, time, and timers are allowed and encouraged.** You may use \`new Date()\` / a ticking clock (\`setInterval\` inside \`useEffect\`, and ALWAYS clear it in the cleanup), and you may fetch real data from public APIs (see "Live data" below). Don't rely on \`localStorage\` for required state. Always clean up timers and intervals.
+
+## Live data — calling real APIs
+
+You have two helpers in scope as **globals (no import)** that fetch through a same-origin proxy, so they work with ANY public API without CORS problems:
+
+- \`fetchJSON(url: string): Promise<any>\` — GET a URL and parse JSON. Use this for almost everything.
+- \`fetchText(url: string): Promise<string>\` — GET a URL and return raw text.
+
+Pattern: fetch inside \`useEffect\`, track \`loading\` / \`error\` / \`data\` in state, and render all three states. Example shape:
+
+\`\`\`tsx
+import { useState, useEffect } from "react";
+
+export default function App() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchJSON("https://api.example.com/thing")
+      .then((d) => { if (alive) setData(d); })
+      .catch((e) => { if (alive) setError(String(e)); });
+    return () => { alive = false; };
+  }, []);
+
+  if (error) return <div style={{ padding: 16, color: "var(--os-red)" }}>{error}</div>;
+  if (!data) return <div style={{ padding: 16, color: "var(--os-text-secondary)" }}>Loading…</div>;
+  return <div style={{ padding: 16 }}>{/* render data */}</div>;
+}
+\`\`\`
+
+Use real, reliable, keyless public APIs (e.g. open weather/time/crypto/quote/fact endpoints that need no API key). Never put secrets or API keys in the code. Always handle the loading and error states — a failed fetch must show a friendly message, not crash. \`fetch\` (the browser global) also exists if you want it, but it only works for CORS-enabled hosts; prefer \`fetchJSON\`.
 
 ## Make it look like macOS
 

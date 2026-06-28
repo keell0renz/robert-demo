@@ -78,13 +78,18 @@ export function CodeWorkspace({
     [chat],
   );
 
-  // Put the id in the URL in place (no navigation) so the workspace is reloadable.
+  // Put the id in the URL in place (no navigation) so the workspace is
+  // reloadable — but ONLY once the conversation has actually started. Writing it
+  // on mount would leave a fresh /code showing /code/{id} for an id that has no
+  // DB row yet, so a hard refresh would 404. We wait for the first message; by
+  // then a session row exists (the tool's ensureSession / onFinish persist).
   useEffect(() => {
+    if (messages.length === 0) return;
     const target = `/code/${sessionId}`;
     if (window.location.pathname !== target) {
       window.history.replaceState(null, "", target);
     }
-  }, [sessionId]);
+  }, [sessionId, messages.length]);
 
   // ── Window manager (identical to Path A) ──────────────────────────────────
   const [winState, setWinState] = useState<Record<string, WinState>>({ agent: "open" });
