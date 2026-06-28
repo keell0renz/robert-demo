@@ -9,6 +9,7 @@ import {
 } from "@remixicon/react";
 import { useEveAgent } from "eve/react";
 import { Render, type UINode } from "@/os";
+import { Dock } from "@/os/primitives/Dock";
 import { persistChat } from "@/app/actions";
 import { AgentChat } from "./agent-chat";
 import { deriveArtifact } from "./derive";
@@ -226,6 +227,7 @@ function ArtifactStage({
       {tree ? (
         <>
           <Render node={tree} />
+          <Dock />
           {building ? (
             <div className="text-label-xs absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 font-medium text-white backdrop-blur">
               <span className="size-1.5 animate-pulse rounded-full bg-white" />

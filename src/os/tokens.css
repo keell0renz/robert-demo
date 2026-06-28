@@ -59,6 +59,12 @@
 
   /* The desktop behind a window. */
   --os-wallpaper: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
+
+  /* Liquid-glass dock — near-transparent neutral shelf so the wallpaper reads
+     THROUGH it (a colored slab is the tell of fake glass) + a bright top rim. */
+  --os-dock-bg: rgba(255, 255, 255, 0.12);
+  --os-dock-border: rgba(255, 255, 255, 0.3);
+  --os-glass-rim: rgba(255, 255, 255, 0.6);
 }
 
 /* Dark mode is driven by the app's theme toggle, NOT the OS setting. next-themes
@@ -90,6 +96,10 @@
     --os-shadow-window: 0 22px 70px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
     --os-shadow-floating: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.1);
     --os-wallpaper: linear-gradient(135deg, #2b3a55 0%, #44318d 100%);
+
+    --os-dock-bg: rgba(40, 40, 44, 0.28);
+    --os-dock-border: rgba(255, 255, 255, 0.14);
+    --os-glass-rim: rgba(255, 255, 255, 0.35);
 }
 
 /* Accessibility: "Reduce transparency" strips glass to opaque. The UI still
@@ -112,4 +122,51 @@
 
 .os-root .os-btn:active {
   filter: brightness(0.95);
+}
+
+/* ============================================================================
+   LIQUID GLASS — Layers 1–3 (universal, cheap, no SVG refraction). Tint + blur
+   + saturate/brightness so the wallpaper bleeds through *lit and rich* instead
+   of fog-grey, a directional specular rim painted only on the border ring via
+   the gradient-mask trick, and a float shadow so the pane reads as hovering.
+   ============================================================================ */
+.os-glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--os-dock-bg);
+  -webkit-backdrop-filter: blur(32px) saturate(150%);
+  backdrop-filter: blur(32px) saturate(150%);
+  box-shadow:
+    inset 0 0.5px 0 0 rgba(255, 255, 255, 0.55), /* top specular catch */
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.08), /* faint inner edge      */
+    0 18px 50px rgba(0, 0, 0, 0.35); /* float shadow          */
+}
+/* The rim: a top-hot gradient painted ONLY on the 1px border ring (mask xor),
+   so light catches the upper edge and fades down the sides like real glass. */
+.os-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    to bottom,
+    var(--os-glass-rim) 0%,
+    color-mix(in srgb, var(--os-glass-rim) 18%, transparent) 32%,
+    transparent 64%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .os-glass {
+    background: var(--os-surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }

@@ -1,6 +1,7 @@
 import { REGISTRY } from "./registry";
 import { NavShell } from "./primitives/NavShell";
 import { PageHost } from "./primitives/PageHost";
+import { Dock } from "./primitives/Dock";
 import type { UINode } from "./types";
 
 // Layout intelligence lives HERE, not in the primitives — the strict schema
@@ -119,6 +120,7 @@ export function Desktop({ node }: { node: UINode | null | undefined }) {
       }}
     >
       <Render node={node} />
+      <Dock />
     </div>
   );
 }
