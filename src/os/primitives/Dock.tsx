@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   Compass, Mail, MessageCircle, Image as ImageIcon, MapPin, Calendar,
-  Music, Settings, Terminal, NotebookPen, Camera, Phone, Trash2,
+  Music, Settings, Terminal, NotebookPen, Camera, Phone, Trash2, Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,6 +43,14 @@ const TRASH: App = {
   grad: "linear-gradient(180deg,rgba(255,255,255,0.3),rgba(255,255,255,0.08))", fg: "#ffffff",
 };
 
+// The Agent — the ONE real app on this desktop. Everything else is set dressing;
+// this tile actually opens a window. A distinctive indigo squircle so it reads as
+// "the assistant" and stands apart from the decorative system apps.
+const AGENT: App = {
+  name: "Agent", glyph: Sparkles,
+  grad: "linear-gradient(180deg,#a78bfa 0%,#7c5cff 55%,#5b34e0 100%)", fill: true,
+};
+
 const SIZE = 50;   // fixed icon size — no magnification
 const GAP = 12;    // breathing room between icons
 const PAD_Y = 9;   // vertical glass padding — kept equal top & bottom
@@ -51,7 +59,15 @@ const PAD_Y = 9;   // vertical glass padding — kept equal top & bottom
 // The glass (Layers 1–3) lives in the `.os-glass` CSS class. Each icon is a
 // glossy squircle (gradient core + top sheen + inner rim + drop shadow) so the
 // row reads like real, dimensional app icons rather than flat swatches.
-export function Dock() {
+export function Dock({
+  onAgentClick,
+  agentRunning,
+}: {
+  // When provided, the Agent tile is shown as the live, clickable app (leftmost,
+  // set apart by a divider). Omitted (e.g. the static /demo desktop) → no Agent.
+  onAgentClick?: () => void;
+  agentRunning?: boolean;
+} = {}) {
   return (
     <div
       style={{
@@ -73,26 +89,37 @@ export function Dock() {
           borderRadius: 24,
         }}
       >
-        {APPS.map((app) => (
-          <DockIcon key={app.name} app={app} />
-        ))}
+        {onAgentClick ? (
+          // Workspace dock: just the one real app (Agent) and the trash. The
+          // decorative system apps are intentionally left off for now.
+          <DockIcon app={{ ...AGENT, dot: agentRunning }} onClick={onAgentClick} />
+        ) : (
+          // Static /demo desktop: the full decorative set.
+          APPS.map((app) => <DockIcon key={app.name} app={app} />)
+        )}
 
         {/* macOS divider before the "files/trash" section. */}
-        <div
-          style={{
-            width: 0.5,
-            alignSelf: "stretch",
-            margin: "5px 3px",
-            background: "var(--os-dock-border)",
-          }}
-        />
+        <Divider />
         <DockIcon app={TRASH} />
       </div>
     </div>
   );
 }
 
-function DockIcon({ app }: { app: App }) {
+function Divider() {
+  return (
+    <div
+      style={{
+        width: 0.5,
+        alignSelf: "stretch",
+        margin: "5px 3px",
+        background: "var(--os-dock-border)",
+      }}
+    />
+  );
+}
+
+function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
   const [hover, setHover] = useState(false);
   const Glyph = app.glyph;
   const fg = app.fg ?? "#ffffff";
@@ -102,6 +129,7 @@ function DockIcon({ app }: { app: App }) {
     <div
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
+      onClick={onClick}
       style={{
         position: "relative",
         // The flex item is exactly one icon tall (dot is absolute), so flex-end +

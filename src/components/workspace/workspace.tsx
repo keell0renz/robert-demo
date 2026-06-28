@@ -1,22 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  RiAddLine,
-  RiAppleLine,
-  RiLayoutRightLine,
-  RiWindowLine,
-} from "@remixicon/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useEveAgent } from "eve/react";
 import { Render, type UINode } from "@/os";
 import { Dock } from "@/os/primitives/Dock";
+import { WindowFrame } from "@/os/primitives/Window";
 import { persistChat } from "@/app/actions";
 import { AgentChat } from "./agent-chat";
 import { deriveArtifact } from "./derive";
-import { Landing } from "./landing";
-import { RAIL_DEFAULT, RAIL_MAX, RAIL_MIN, RightRail } from "./right-rail";
-import { ThemeToggle } from "./theme-toggle";
-import { BackgroundButton } from "./wallpaper-picker";
+import { MenuBar, MENU_BAR_H } from "./menu-bar";
 import {
   DEFAULT_WALLPAPER_ID,
   WALLPAPER_STORAGE_KEY,
@@ -38,8 +30,10 @@ export type RecentPage = {
   updatedAt: Date;
 };
 
-const TOPBAR_H = 52;
-
+// The whole page IS a macOS desktop. A translucent menu bar on top; a wallpapered
+// stage hosting the generated artifact window AND the Agent app window; a dock
+// along the floor. The Agent is the one *real* app — its dock icon opens/closes a
+// genuine macOS window whose chat composes everything else on the desktop.
 export function Workspace({
   initialPage,
   recentPages = [],
@@ -66,7 +60,7 @@ export function Workspace({
 
   const tree = derived.tree ?? initialPage?.tree ?? null;
   const pageId = derived.pageId ?? initialPage?.id ?? null;
-  const hasStarted = Boolean(initialPage) || messages.length > 0;
+  const hasTree = Boolean(tree);
   const title =
     (tree?.props?.title as string | undefined) ?? initialPage?.title ?? "Untitled";
 
@@ -89,7 +83,7 @@ export function Workspace({
     }
   }, [pageId]);
 
-  // ── Background state ──────────────────────────────────────────────────────
+  // ── Background ────────────────────────────────────────────────────────────
   const [wallpaperId, setWallpaperId] = useState(DEFAULT_WALLPAPER_ID);
   useEffect(() => {
     const saved = window.localStorage.getItem(WALLPAPER_STORAGE_KEY);
@@ -102,147 +96,123 @@ export function Workspace({
   }, []);
   const wallpaper = wallpaperById(wallpaperId);
 
-  // ── Rail state ────────────────────────────────────────────────────────────
-  const [railOpen, setRailOpen] = useState(true);
-  const [railWidth, setRailWidth] = useState(RAIL_DEFAULT);
-  const [resizing, setResizing] = useState(false);
+  // ── Agent app window ──────────────────────────────────────────────────────
+  // Boots open (it's the entry point). Closing it (red light / dock click) only
+  // hides the window — the chat state lives here and persists.
+  const [agentOpen, setAgentOpen] = useState(true);
+  const toggleAgent = useCallback(() => setAgentOpen((o) => !o), []);
 
-  useEffect(() => {
-    const saved = Number(window.localStorage.getItem("rail-width"));
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted width on mount (SSR-safe)
-    if (saved >= RAIL_MIN && saved <= RAIL_MAX) setRailWidth(saved);
-  }, []);
-
-  const changeWidth = useCallback((w: number) => {
-    setRailWidth(w);
-    window.localStorage.setItem("rail-width", String(w));
-  }, []);
-
+  // ⌘I still toggles the Agent app, matching the old panel shortcut.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i") {
         e.preventDefault();
-        setRailOpen((o) => !o);
+        setAgentOpen((o) => !o);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  if (!hasStarted) {
-    return <Landing onSend={send} isBusy={isBusy} recentPages={recentPages} />;
-  }
+  // ── Focus (drives the menu-bar app name) ──────────────────────────────────
+  // Boot focused on the Agent; once an artifact exists, the generated app takes
+  // the menu bar (its title), the way the frontmost app does on macOS.
+  const [focused, setFocused] = useState<"agent" | "artifact">("agent");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- raise the artifact when it first appears
+    if (hasTree) setFocused("artifact");
+  }, [hasTree]);
 
-  const paddingRight = railOpen ? railWidth : 0;
+  const onStagePointerDown = useCallback((e: React.PointerEvent) => {
+    const win = (e.target as HTMLElement).closest("[data-window]") as HTMLElement | null;
+    if (win?.dataset.window === "agent") setFocused("agent");
+    else if (win?.dataset.window === "artifact") setFocused("artifact");
+  }, []);
 
-  return (
-    <>
-      <div
-        className="bg-background min-h-dvh"
-        style={{ paddingRight, transition: resizing ? "none" : "padding 200ms ease-out" }}
-      >
-        {/* Solid white, no bottom border: the macOS design space below is a
-            different colour (wallpaper/dark), so the colour change is the
-            separation — a gray hairline there reads as a seam. */}
-        <header
-          className="bg-card sticky top-0 z-20 flex items-center justify-between gap-3 px-4"
-          style={{ height: TOPBAR_H }}
-        >
-          <div className="flex min-w-0 items-center gap-2">
-            <RiAppleLine className="size-[18px] shrink-0" />
-            <span className="text-label-sm text-foreground truncate font-medium">{title}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => window.location.assign("/")}
-              className="text-label-xs text-muted-foreground hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-colors"
-            >
-              <RiAddLine className="size-3.5" /> New
-            </button>
-            <BackgroundButton selectedId={wallpaperId} onSelect={changeWallpaper} />
-            <ThemeToggle />
-            {!railOpen ? (
-              <button
-                onClick={() => setRailOpen(true)}
-                aria-label="Open panel"
-                title="Open panel  ⌘I"
-                className="text-foreground-soft hover:text-foreground hover:bg-muted inline-flex size-8 items-center justify-center rounded-lg transition-colors"
-              >
-                <RiLayoutRightLine className="size-[18px]" />
-              </button>
-            ) : null}
-          </div>
-        </header>
+  const appName = focused === "artifact" && hasTree ? title : "Agent";
 
-        <main style={{ minHeight: `calc(100dvh - ${TOPBAR_H}px)` }}>
-          <ArtifactStage
-            tree={tree}
-            building={derived.building}
-            background={wallpaper.background}
-          />
-        </main>
-      </div>
-
-      <RightRail
-        open={railOpen}
-        width={railWidth}
-        title="Agent"
-        onClose={() => setRailOpen(false)}
-        onWidthChange={changeWidth}
-        onResizingChange={setResizing}
-      >
-        <AgentChat messages={messages} isBusy={isBusy} onSend={send} onStop={agent.stop} />
-      </RightRail>
-    </>
-  );
-}
-
-// The macOS artifact zone: the wallpapered .os-root stage hosting the rendered
-// Window. Shows a skeleton until the first tree streams in.
-function ArtifactStage({
-  tree,
-  building,
-  background,
-}: {
-  tree: UINode | null;
-  building: boolean;
-  background: string;
-}) {
-  const stageRef = useRef<HTMLDivElement | null>(null);
   return (
     <div
-      ref={stageRef}
-      className="os-root relative flex h-full w-full items-center justify-center p-6 sm:p-10"
+      className="os-root"
       style={{
-        minHeight: "inherit",
-        // `background` is always an image value (the gradient token or a url()),
-        // so use the longhand — mixing the `background` shorthand with
-        // backgroundSize/Position warns in React.
-        backgroundImage: background,
+        position: "fixed",
+        inset: 0,
+        overflow: "hidden",
+        backgroundImage: wallpaper.background,
         backgroundSize: "cover",
         backgroundPosition: "center",
         transition: "background-image 200ms ease",
       }}
     >
-      {tree ? (
-        <>
-          <Render node={tree} />
-          <Dock />
-          {building ? (
-            <div className="text-label-xs absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 font-medium text-white backdrop-blur">
-              <span className="size-1.5 animate-pulse rounded-full bg-white" />
-              Updating…
+      <MenuBar appName={appName} wallpaperId={wallpaperId} onWallpaper={changeWallpaper} />
+
+      {/* The desktop stage — positioned, so it's the containing block every
+          window measures and drags within. */}
+      <div
+        onPointerDownCapture={onStagePointerDown}
+        style={{ position: "absolute", top: MENU_BAR_H, left: 0, right: 0, bottom: 0 }}
+      >
+        {/* Artifact layer: a full-stage positioned context so the generated
+            window's resize handles stay confined BELOW the Agent app (z 30). */}
+        {tree ? (
+          <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
+            <div data-window="artifact" style={{ display: "contents" }}>
+              <Render node={tree} />
             </div>
-          ) : null}
-        </>
-      ) : (
-        <div className="flex flex-col items-center gap-3 text-white/90">
-          <div className="grid size-14 place-items-center rounded-2xl bg-white/15 backdrop-blur">
-            <RiWindowLine className="size-7 animate-pulse" />
           </div>
-          <div className="text-paragraph-sm font-medium">Designing your interface…</div>
+        ) : null}
+
+        {/* The Agent app — a real, draggable, closable macOS window floating
+            above the artifact. Kept mounted (geometry persists) and hidden when
+            closed. */}
+        <div data-window="agent" style={{ display: "contents" }}>
+          <WindowFrame
+            title="Agent"
+            z={30}
+            hidden={!agentOpen}
+            onClose={() => setAgentOpen(false)}
+            placement="right"
+            defaultWidth={480}
+            defaultHeight={660}
+          >
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+              <AgentChat
+                messages={messages}
+                isBusy={isBusy}
+                onSend={send}
+                onStop={agent.stop}
+                recentPages={recentPages}
+              />
+            </div>
+          </WindowFrame>
         </div>
-      )}
+
+        {derived.building ? (
+          <div
+            className="text-label-xs"
+            style={{
+              position: "absolute",
+              right: 14,
+              top: 12,
+              zIndex: 45,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.4)",
+              padding: "4px 10px",
+              fontWeight: 500,
+              color: "#fff",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} className="animate-pulse" />
+            Updating…
+          </div>
+        ) : null}
+
+        <Dock onAgentClick={toggleAgent} agentRunning={agentOpen} />
+      </div>
     </div>
   );
 }

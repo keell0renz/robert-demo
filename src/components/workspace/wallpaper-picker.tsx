@@ -36,7 +36,7 @@ export function BackgroundButton({
   );
 }
 
-function WallpaperModal({
+export function WallpaperModal({
   selectedId,
   onSelect,
   onClose,

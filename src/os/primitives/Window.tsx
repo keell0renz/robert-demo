@@ -23,10 +23,11 @@ const IN = 5; // px it extends inward
 const EDGE = OUT + IN; // edge band thickness
 const CORNER = 16; // corner hit-square side
 
-// Window tiling (green-button menu): the gap macOS leaves at the stage edges
-// and between adjacent tiles.
-const SNAP_MARGIN = 14;
-const SNAP_GAP = 12;
+// Window tiling (green-button menu): macOS auto-expands flush to the stage edges
+// (no outer margin, no inter-tile gap), and a filled window stops ABOVE the dock
+// rather than running under it. DOCK_RESERVE is the band the dock occupies at the
+// bottom of the stage (dock bottom offset 12 + glass height ~68 + a small gap).
+const DOCK_RESERVE = 90;
 
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -93,7 +94,33 @@ const ALL_REGIONS: Region[] = [...MOVE_RESIZE, ...FILL_ARRANGE];
 // its natural size and centres itself inside the positioned stage, then takes
 // over with absolute geometry so the opposite edge stays anchored while
 // resizing (real-macOS behaviour).
-export function WindowFrame({ title = "Untitled", children }: { title?: string; children?: ReactNode }) {
+export function WindowFrame({
+  title = "Untitled",
+  children,
+  z,
+  onClose,
+  hidden,
+  placement = "center",
+  defaultWidth,
+  defaultHeight,
+}: {
+  title?: string;
+  children?: ReactNode;
+  // Stacking order within the desktop stage (the Agent app floats above the
+  // generated artifact). Omitted → auto (DOM order).
+  z?: number;
+  // Wires the red traffic light. Used by the Agent window so closing it just
+  // hides the app (its chat state lives in the workspace and persists).
+  onClose?: () => void;
+  // Keep the frame mounted but visually gone — preserves measured geometry so
+  // reopening the Agent app restores its exact position/size.
+  hidden?: boolean;
+  // Initial placement of the measured box. "right" docks the Agent window to the
+  // right of the stage; "center" is the default for generated artifacts.
+  placement?: "center" | "right";
+  defaultWidth?: number;
+  defaultHeight?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box | null>(null);
   const [active, setActive] = useState<null | "drag" | ResizeDir>(null);
@@ -131,20 +158,23 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
     const el = ref.current;
     if (!el || box) return;
     const { pw, ph } = stageSize();
-    const w = clamp(DEFAULT_W, MIN_W, Math.max(MIN_W, pw - 32));
-    const h = clamp(el.offsetHeight, MIN_H, Math.max(MIN_H, ph - 32));
-    setBox({ x: Math.max(0, (pw - w) / 2), y: Math.max(0, (ph - h) / 2), w, h });
-  }, [box]);
+    const w = clamp(defaultWidth ?? DEFAULT_W, MIN_W, Math.max(MIN_W, pw - 32));
+    const h = clamp(defaultHeight ?? el.offsetHeight, MIN_H, Math.max(MIN_H, ph - 32));
+    const x = placement === "right" ? Math.max(0, pw - w - 28) : Math.max(0, (pw - w) / 2);
+    const y = placement === "right" ? Math.max(24, (ph - h) / 2) : Math.max(0, (ph - h) / 2);
+    setBox({ x, y, w, h });
+  }, [box, defaultWidth, defaultHeight, placement]);
 
   // Snap the window into a fractional region of the stage (green-button menu).
+  // The usable area is the full stage width and the height minus the dock band,
+  // so presets fill flush to the edges and never overlap the dock.
   const arrange = useCallback((r: Region) => {
     const { pw, ph } = stageSize();
-    const innerW = pw - 2 * SNAP_MARGIN;
-    const innerH = ph - 2 * SNAP_MARGIN;
-    let w = clamp(r.fw * innerW - SNAP_GAP, MIN_W, pw);
-    let h = clamp(r.fh * innerH - SNAP_GAP, MIN_H, ph);
-    let x = clamp(SNAP_MARGIN + r.fx * innerW + SNAP_GAP / 2, 0, Math.max(0, pw - w));
-    let y = clamp(SNAP_MARGIN + r.fy * innerH + SNAP_GAP / 2, 0, Math.max(0, ph - h));
+    const availH = Math.max(MIN_H, ph - DOCK_RESERVE);
+    const w = clamp(r.fw * pw, MIN_W, pw);
+    const h = clamp(r.fh * availH, MIN_H, availH);
+    const x = clamp(r.fx * pw, 0, Math.max(0, pw - w));
+    const y = clamp(r.fy * availH, 0, Math.max(0, availH - h));
     setSnap(true);
     setBox({ x, y, w, h });
   }, []);
@@ -211,8 +241,13 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
   // Outer wrapper holds the geometry and is NOT clipped, so the straddling
   // resize handles can extend a few px past the visual frame.
   const wrapStyle: CSSProperties = positioned
-    ? { position: "absolute", left: box!.x, top: box!.y, width: box!.w, height: box!.h, transition }
-    : { position: "relative", width: DEFAULT_W, maxWidth: "100%" };
+    ? { position: "absolute", left: box!.x, top: box!.y, width: box!.w, height: box!.h, transition, zIndex: z }
+    : { position: "relative", width: DEFAULT_W, maxWidth: "100%", zIndex: z };
+  // Hidden: keep mounted (geometry persists) but neither paint nor catch events.
+  if (hidden) {
+    wrapStyle.visibility = "hidden";
+    wrapStyle.pointerEvents = "none";
+  }
 
   // Inner frame: the visible, rounded, clipped window.
   const frameStyle: CSSProperties = {
@@ -229,7 +264,7 @@ export function WindowFrame({ title = "Untitled", children }: { title?: string; 
   return (
     <div ref={ref} style={wrapStyle}>
       <div style={frameStyle}>
-        <TitleBar title={title} dragging={dragging} onDragStart={begin("drag")} onArrange={arrange} />
+        <TitleBar title={title} dragging={dragging} onDragStart={begin("drag")} onArrange={arrange} onClose={onClose} />
         <div style={{ display: "flex", flex: 1, minHeight: positioned ? 0 : 420, overflow: "hidden" }}>
           {children}
         </div>
@@ -260,11 +295,13 @@ function TitleBar({
   dragging,
   onDragStart,
   onArrange,
+  onClose,
 }: {
   title: string;
   dragging: boolean;
   onDragStart: (e: ReactPointerEvent) => void;
   onArrange: (r: Region) => void;
+  onClose?: () => void;
 }) {
   return (
     <div
@@ -284,7 +321,7 @@ function TitleBar({
         zIndex: 10,
       }}
     >
-      <TrafficLights onArrange={onArrange} />
+      <TrafficLights onArrange={onArrange} onClose={onClose} />
       <div
         style={{
           position: "absolute",
@@ -305,7 +342,7 @@ function TitleBar({
 
 // The three window buttons. The green one carries the macOS tiling menu: hover
 // it (or press and hold) to reveal Move & Resize / Fill & Arrange presets.
-function TrafficLights({ onArrange }: { onArrange: (r: Region) => void }) {
+function TrafficLights({ onArrange, onClose }: { onArrange: (r: Region) => void; onClose?: () => void }) {
   const [hover, setHover] = useState(false);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -357,7 +394,7 @@ function TrafficLights({ onArrange }: { onArrange: (r: Region) => void }) {
   );
 
   const lights = [
-    { c: "var(--os-tl-red)", g: "×" },
+    { c: "var(--os-tl-red)", g: "×", red: true },
     { c: "var(--os-tl-yellow)", g: "−" },
     { c: "var(--os-tl-green)", g: "+", green: true },
   ];
@@ -381,6 +418,7 @@ function TrafficLights({ onArrange }: { onArrange: (r: Region) => void }) {
       {lights.map((l, i) => (
         <span
           key={i}
+          onClick={l.red && onClose ? () => onClose() : undefined}
           onPointerDown={
             l.green
               ? () => {
