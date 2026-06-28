@@ -44,9 +44,3 @@ export function messageText(message: EveMessage): string {
   return message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 }
 
-// Did this assistant message save/update the page? (for a "built it" chip)
-export function savedInMessage(message: EveMessage): boolean {
-  return (message.parts as unknown as ToolPart[]).some(
-    (p) => p.type === "dynamic-tool" && p.toolName === "save_page" && p.state === "output-available",
-  );
-}

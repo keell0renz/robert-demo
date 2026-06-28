@@ -1,11 +1,19 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { RiSparkling2Line } from "@remixicon/react";
 import type { EveMessage } from "eve/react";
-import { cn } from "@/lib/utils/cn";
-import { messageText, savedInMessage } from "./derive";
+import { messageText } from "./derive";
 import { PromptComposer } from "./prompt-composer";
+
+// One projected message part. Eve emits text parts and the save_page
+// dynamic-tool part in the order they occur, which is exactly how we render
+// them — text, then the tool status, then any follow-up text on its own line.
+type MessagePart = {
+  type: string;
+  text?: string;
+  toolName?: string;
+  state?: string;
+};
 
 // The conversation + composer that lives in the right rail. Wired to eve's
 // projected messages (text parts + the save_page dynamic-tool part).
@@ -28,17 +36,24 @@ export function AgentChat({
   }, [messages, isBusy]);
 
   const last = messages.at(-1);
+  // Eve only surfaces the save_page part once it reaches `output-available` — the
+  // long tool-input streaming (the tree the model writes) shows up as nothing.
+  // So the live "Designing" status is driven by `isBusy`, not the part state.
   const showThinking =
     isBusy && (!last || last.role === "user" || messageText(last).trim().length === 0);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-        {messages.map((message) => (
-          <Message key={message.id} message={message} />
+        {messages.map((message, i) => (
+          <Message
+            key={message.id}
+            message={message}
+            pending={isBusy && i === messages.length - 1}
+          />
         ))}
         {showThinking ? (
-          <div className="chat-shimmer-text text-paragraph-sm font-medium">Designing…</div>
+          <div className="chat-shimmer-text text-paragraph-sm font-medium">Thinking…</div>
         ) : null}
       </div>
       <div className="border-border shrink-0 border-t p-3">
@@ -56,35 +71,54 @@ export function AgentChat({
   );
 }
 
-function Message({ message }: { message: EveMessage }) {
-  const text = messageText(message);
-
+function Message({ message, pending }: { message: EveMessage; pending: boolean }) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
         <div className="bg-primary text-primary-foreground text-paragraph-sm ml-auto max-w-[85%] rounded-2xl rounded-br-md px-3.5 py-2">
-          {text}
+          {messageText(message)}
         </div>
       </div>
     );
   }
 
-  const saved = savedInMessage(message);
+  const parts = message.parts as unknown as MessagePart[];
+  const designed = parts.some(
+    (p) => p.type === "dynamic-tool" && p.toolName === "save_page" && p.state === "output-available",
+  );
+  const hasText = parts.some((p) => p.type === "text" && p.text?.trim());
+  // Shimmer while the turn is still working and hasn't saved yet; once the page
+  // is saved it flips to a static "Designed" rendered inline (below). Each is its
+  // own line — never merged with the model's prose.
+  const showDesigning = pending && hasText && !designed;
+
   return (
     <div className="space-y-2">
-      {text ? (
-        <div className="text-paragraph-sm text-foreground whitespace-pre-wrap">{text}</div>
-      ) : null}
-      {saved ? (
-        <div
-          className={cn(
-            "text-label-xs inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-            "bg-success-lighter text-success-base",
-          )}
-        >
-          <RiSparkling2Line className="size-3.5" />
-          Updated the page
-        </div>
+      {/* Parts in natural order: intro text, then the inline "Designed" marker at
+          the tool's position, then any follow-up text on its own line. */}
+      {parts.map((part, i) => {
+        if (part.type === "text") {
+          return part.text ? (
+            <div key={i} className="text-paragraph-sm text-foreground whitespace-pre-wrap">
+              {part.text}
+            </div>
+          ) : null;
+        }
+        if (
+          part.type === "dynamic-tool" &&
+          part.toolName === "save_page" &&
+          part.state === "output-available"
+        ) {
+          return (
+            <div key={i} className="text-muted-foreground text-paragraph-sm font-medium">
+              Designed
+            </div>
+          );
+        }
+        return null;
+      })}
+      {showDesigning ? (
+        <div className="chat-shimmer-text text-paragraph-sm font-medium">Designing</div>
       ) : null}
     </div>
   );

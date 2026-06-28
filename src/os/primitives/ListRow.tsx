@@ -1,26 +1,37 @@
+"use client";
+
+import { useContext } from "react";
 import { ChevronRight, Check } from "lucide-react";
 import { Icon } from "./icons";
+import { PageNavContext } from "./PageHost";
 import type { IconName } from "../schema";
+import type { UINode } from "../types";
 
 // PRIMITIVE: ListRow — one row of a source/detail list. Best inside a Card,
 // where the renderer draws the hairline separators between rows. Keeps its own
-// 14px inset so it aligns identically whether grouped or standalone.
+// 14px inset so it aligns identically whether grouped or standalone. With a
+// `detail`, clicking the row opens that detail as a pushed page (back button).
 export function ListRow({
   title,
   subtitle,
   icon,
   badge,
   accessory = "none",
+  detail,
 }: {
   title: string;
   subtitle?: string;
   icon?: IconName;
   badge?: string;
   accessory?: "chevron" | "check" | "none";
+  detail?: UINode[];
 }) {
+  const push = useContext(PageNavContext);
+  const openable = !!push && !!detail && detail.length > 0;
   return (
     <div
       className="os-row"
+      onClick={openable ? () => push!(title, detail!) : undefined}
       style={{
         display: "flex",
         alignItems: "center",
@@ -29,6 +40,7 @@ export function ListRow({
         minHeight: subtitle ? 48 : 36,
         padding: "0 14px",
         boxSizing: "border-box",
+        cursor: openable ? "pointer" : "default",
       }}
     >
       {icon ? (

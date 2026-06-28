@@ -12,7 +12,9 @@ export function Content({ children }: { children?: ReactNode }) {
         display: "flex",
         flexDirection: "column",
         gap: 16,
-        padding: 20,
+        // 10px top makes the first element (a heading, or a Toolbar that bleeds
+        // up over it) line up with the sidebar's first item — see Sidebar/Toolbar.
+        padding: "10px 20px 20px",
         overflow: "auto",
       }}
     >

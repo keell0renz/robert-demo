@@ -1,5 +1,6 @@
 import { REGISTRY } from "./registry";
 import { NavShell } from "./primitives/NavShell";
+import { PageHost } from "./primitives/PageHost";
 import type { UINode } from "./types";
 
 // Layout intelligence lives HERE, not in the primitives — the strict schema
@@ -72,6 +73,12 @@ export function Render({ node }: { node: UINode | null | undefined }) {
     if (sidebar && hasPages) {
       return <NavShell title={node.props?.title as string | undefined} sidebar={sidebar} />;
     }
+  }
+
+  // Content is the page body — render it through PageHost so its rows can drill
+  // into detail views (the nav stack lives there, not in the dumb primitive).
+  if (node.type === "Content") {
+    return <PageHost nodes={node.children ?? []} />;
   }
 
   // Card composes its children into a grouped list (see note above).

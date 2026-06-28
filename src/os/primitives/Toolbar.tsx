@@ -7,7 +7,9 @@ export function Toolbar({ children }: { children?: ReactNode }) {
   return (
     <div
       style={{
-        margin: "-20px -20px 0",
+        // Cancel Content's padding (10 top, 20 sides) so the strip bleeds to the
+        // pane edges and its 48px height centres on the sidebar's first item.
+        margin: "-10px -20px 0",
         height: 48,
         flexShrink: 0,
         display: "flex",

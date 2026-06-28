@@ -2,15 +2,16 @@ import type { UINode } from "./types";
 
 // A canonical example tree — exactly the jsonb shape the agent emits and we
 // store. Used to seed a demo page and to show the model a worked example. It
-// must satisfy UINodeSchema.
+// must satisfy UINodeSchema. Keep it LEAN: each tab is a short page (a heading
+// + a card or two). The model mirrors this size, so a bloated example makes
+// every generation slow. `detail`/`panels` exist (see schema) but are used
+// sparingly, only when a request actually calls for drill-in or tabs.
 export const EXAMPLE_TREE: UINode = {
   type: "Window",
   props: { title: "Customs Dashboard" },
   children: [
     {
-      // A navigation sidebar: every item carries its own `page`, so selecting an
-      // item swaps the whole content area. This is what makes the sidebar feel
-      // like a real multi-page app instead of a static highlight.
+      // Navigation sidebar: every item has its own short page.
       type: "Sidebar",
       props: {
         selected: 2,

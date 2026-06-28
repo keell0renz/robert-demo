@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Render } from "../Render";
 import type { UINode } from "../types";
 import type { IconName } from "../schema";
 import { WindowFrame } from "./Window";
 import { Sidebar } from "./Sidebar";
-import { Content } from "./Content";
+import { PageHost } from "./PageHost";
 
 type NavItem = { label?: string; icon?: IconName; page?: UINode[] };
 
@@ -32,11 +31,7 @@ export function NavShell({ title, sidebar }: { title?: string; sidebar: UINode }
         onSelect={(i) => setSel(clamp(i))}
       />
       {page && page.length > 0 ? (
-        <Content key={sel}>
-          {page.map((n, i) => (
-            <Render key={i} node={n} />
-          ))}
-        </Content>
+        <PageHost key={sel} nodes={page} />
       ) : (
         <EmptyPage label={current?.label} />
       )}

@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
   RiAddLine,
   RiAppleLine,
-  RiArrowRightUpLine,
   RiLayoutRightLine,
   RiWindowLine,
 } from "@remixicon/react";
@@ -17,6 +15,12 @@ import { deriveArtifact } from "./derive";
 import { Landing } from "./landing";
 import { RAIL_DEFAULT, RAIL_MAX, RAIL_MIN, RightRail } from "./right-rail";
 import { ThemeToggle } from "./theme-toggle";
+import { BackgroundButton } from "./wallpaper-picker";
+import {
+  DEFAULT_WALLPAPER_ID,
+  WALLPAPER_STORAGE_KEY,
+  wallpaperById,
+} from "./wallpapers";
 
 export type InitialPage = {
   id: string;
@@ -26,9 +30,22 @@ export type InitialPage = {
   chatSession: Record<string, unknown> | null;
 };
 
+export type RecentPage = {
+  id: string;
+  title: string;
+  prompt: string;
+  updatedAt: Date;
+};
+
 const TOPBAR_H = 52;
 
-export function Workspace({ initialPage }: { initialPage?: InitialPage | null }) {
+export function Workspace({
+  initialPage,
+  recentPages = [],
+}: {
+  initialPage?: InitialPage | null;
+  recentPages?: RecentPage[];
+}) {
   const agent = useEveAgent({
     initialEvents: (initialPage?.chatEvents ?? undefined) as never,
     initialSession: (initialPage?.chatSession ?? undefined) as never,
@@ -71,6 +88,19 @@ export function Workspace({ initialPage }: { initialPage?: InitialPage | null })
     }
   }, [pageId]);
 
+  // ── Background state ──────────────────────────────────────────────────────
+  const [wallpaperId, setWallpaperId] = useState(DEFAULT_WALLPAPER_ID);
+  useEffect(() => {
+    const saved = window.localStorage.getItem(WALLPAPER_STORAGE_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted choice on mount (SSR-safe)
+    if (saved) setWallpaperId(saved);
+  }, []);
+  const changeWallpaper = useCallback((id: string) => {
+    setWallpaperId(id);
+    window.localStorage.setItem(WALLPAPER_STORAGE_KEY, id);
+  }, []);
+  const wallpaper = wallpaperById(wallpaperId);
+
   // ── Rail state ────────────────────────────────────────────────────────────
   const [railOpen, setRailOpen] = useState(true);
   const [railWidth, setRailWidth] = useState(RAIL_DEFAULT);
@@ -99,7 +129,7 @@ export function Workspace({ initialPage }: { initialPage?: InitialPage | null })
   }, []);
 
   if (!hasStarted) {
-    return <Landing onSend={send} isBusy={isBusy} />;
+    return <Landing onSend={send} isBusy={isBusy} recentPages={recentPages} />;
   }
 
   const paddingRight = railOpen ? railWidth : 0;
@@ -110,8 +140,11 @@ export function Workspace({ initialPage }: { initialPage?: InitialPage | null })
         className="bg-background min-h-dvh"
         style={{ paddingRight, transition: resizing ? "none" : "padding 200ms ease-out" }}
       >
+        {/* Solid white, no bottom border: the macOS design space below is a
+            different colour (wallpaper/dark), so the colour change is the
+            separation — a gray hairline there reads as a seam. */}
         <header
-          className="border-border bg-card/80 sticky top-0 z-20 flex items-center justify-between gap-3 border-b px-4 backdrop-blur"
+          className="bg-card sticky top-0 z-20 flex items-center justify-between gap-3 px-4"
           style={{ height: TOPBAR_H }}
         >
           <div className="flex min-w-0 items-center gap-2">
@@ -119,21 +152,13 @@ export function Workspace({ initialPage }: { initialPage?: InitialPage | null })
             <span className="text-label-sm text-foreground truncate font-medium">{title}</span>
           </div>
           <div className="flex items-center gap-1">
-            {pageId ? (
-              <Link
-                href={`/${pageId}`}
-                target="_blank"
-                className="text-label-xs text-muted-foreground hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-colors"
-              >
-                Open <RiArrowRightUpLine className="size-3.5" />
-              </Link>
-            ) : null}
             <button
               onClick={() => window.location.assign("/")}
               className="text-label-xs text-muted-foreground hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-colors"
             >
               <RiAddLine className="size-3.5" /> New
             </button>
+            <BackgroundButton selectedId={wallpaperId} onSelect={changeWallpaper} />
             <ThemeToggle />
             {!railOpen ? (
               <button
@@ -149,7 +174,11 @@ export function Workspace({ initialPage }: { initialPage?: InitialPage | null })
         </header>
 
         <main style={{ minHeight: `calc(100dvh - ${TOPBAR_H}px)` }}>
-          <ArtifactStage tree={tree} building={derived.building} />
+          <ArtifactStage
+            tree={tree}
+            building={derived.building}
+            background={wallpaper.background}
+          />
         </main>
       </div>
 
@@ -169,13 +198,30 @@ export function Workspace({ initialPage }: { initialPage?: InitialPage | null })
 
 // The macOS artifact zone: the wallpapered .os-root stage hosting the rendered
 // Window. Shows a skeleton until the first tree streams in.
-function ArtifactStage({ tree, building }: { tree: UINode | null; building: boolean }) {
+function ArtifactStage({
+  tree,
+  building,
+  background,
+}: {
+  tree: UINode | null;
+  building: boolean;
+  background: string;
+}) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   return (
     <div
       ref={stageRef}
       className="os-root relative flex h-full w-full items-center justify-center p-6 sm:p-10"
-      style={{ minHeight: "inherit", background: "var(--os-wallpaper)" }}
+      style={{
+        minHeight: "inherit",
+        // `background` is always an image value (the gradient token or a url()),
+        // so use the longhand — mixing the `background` shorthand with
+        // backgroundSize/Position warns in React.
+        backgroundImage: background,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        transition: "background-image 200ms ease",
+      }}
     >
       {tree ? (
         <>

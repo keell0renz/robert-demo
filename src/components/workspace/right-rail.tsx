@@ -54,7 +54,10 @@ export function RightRail({
       inert={!open || undefined}
       style={{ width }}
       className={cn(
-        "bg-card border-border fixed inset-y-0 right-0 z-30 flex h-dvh flex-col border-l",
+        // No left border: the rail is white and sits against the macOS design
+        // space (a different colour) — the colour change is the separation, so a
+        // gray hairline would just read as a seam.
+        "bg-card fixed inset-y-0 right-0 z-30 flex h-dvh flex-col",
         "transition-transform duration-200 ease-out",
         open ? "translate-x-0" : "pointer-events-none translate-x-full",
       )}
@@ -64,7 +67,7 @@ export function RightRail({
         className="hover:bg-border/80 absolute inset-y-0 -left-0.5 z-10 w-1 cursor-col-resize transition-colors"
         aria-hidden
       />
-      <header className="border-border flex h-12 shrink-0 items-center justify-between gap-2 border-b px-3">
+      <header className="flex h-[52px] shrink-0 items-center justify-between gap-2 px-3">
         <div className="text-label-sm text-foreground flex items-center gap-2 truncate font-medium">
           <span className="bg-success-base inline-block size-1.5 shrink-0 rounded-full" />
           {title}

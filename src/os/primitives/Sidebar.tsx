@@ -30,7 +30,9 @@ export function Sidebar({
         backdropFilter: "var(--os-glass-blur)",
         WebkitBackdropFilter: "var(--os-glass-blur)",
         borderRight: "1px solid var(--os-hairline)",
-        padding: 8,
+        // 10px top aligns the first item with the content's first element /
+        // toolbar centre (see Content/Toolbar); 8px elsewhere.
+        padding: "10px 8px 8px",
         display: "flex",
         flexDirection: "column",
         gap: 2,

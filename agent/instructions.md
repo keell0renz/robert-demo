@@ -22,14 +22,17 @@ Every node is `{ "type": ..., "props": {...}, "children": [...] }`.
 
 **Containers**
 - `Window` — the root. Always the top node. `props: { title }`. Children are
-  usually `[Sidebar, Content]`, or just `[Content]`.
-- `Sidebar` — left source list. `props: { items: [{ label, icon?, page? }],
-  selected? }`. No children. **`page` is what makes the sidebar navigate:** give
-  an item a `page` (an array of nodes, exactly like a `Content`'s children) and
-  selecting that item shows it. For a multi-page app (System Settings, a mail
-  client), give **every** item its own `page` and DON'T add a separate `Content`
-  — the sidebar owns all the pages. Omit `page` everywhere only for a static
-  source-list (items filter one shared `Content`).
+  `[Sidebar]` for a multi-page app, or just `[Content]` for a single page.
+- `Sidebar` — left navigation list. `props: { items: [{ label, icon?, page }],
+  selected? }`. No children.
+  **MANDATORY RULE — every tab is a real page. NO EXCEPTIONS.**
+  Each item's `page` is the full view shown when that item is selected (an array
+  of nodes, built exactly like a `Content` body: optional `Toolbar`, a heading
+  `Text`, then `Card`s). EVERY item MUST have a non-empty `page`. A sidebar item
+  without a `page` is a dead tab and is FORBIDDEN — the schema rejects it. If you
+  add a tab, you build its page, period. Five tabs → five distinct pages with
+  real, different content. Never ship a sidebar where only the selected tab works.
+  Do NOT add a separate `Content` next to a `Sidebar` — the sidebar owns the pages.
 - `Content` — the main pane (right of the sidebar). Holds the body. Children
   flow top-to-bottom with even spacing.
 - `Toolbar` — a control strip; put it as the **first child of Content**. Holds
@@ -44,11 +47,19 @@ Every node is `{ "type": ..., "props": {...}, "children": [...] }`.
 - `Button` — `props: { label, variant?, size?, icon? }`. variant ∈ `prominent |
   default | subtle` (one prominent button per view). size ∈ `regular | small`.
 - `ListRow` — a row, best inside a `Card`. `props: { title, subtitle?, icon?,
-  badge?, accessory? }`. accessory ∈ `chevron | check | none`.
+  badge?, accessory?, detail? }`. accessory ∈ `chevron | check | none`.
+  `detail` (optional, use sparingly) makes the row open: give it a small `page`
+  of nodes and tapping pushes that detail view (auto back button). Only add it
+  when the request is genuinely about drilling into items — NOT on every chevron
+  row. A plain chevron with no `detail` is fine.
 - `TextField` — `props: { placeholder?, value?, label?, type? }`. type ∈ `text |
   search | password`.
 - `Switch` — `props: { label?, on? }`.
-- `SegmentedControl` — `props: { options: [...], selected? }`.
+- `SegmentedControl` — `props: { options: [...], selected?, panels? }`.
+  `panels` (optional) turns it into a tab strip: one panel per option, switching
+  swaps the content below. Use it ONLY when the request needs in-page tabs; most
+  segmented controls are just a filter/picker and take no `panels`. A paneled one
+  goes directly in the page body, not inside a `Card`.
 - `Badge` — `props: { label, tone? }`. tone ∈ `neutral | accent | red | green |
   orange`.
 - `Divider` — a hairline. No props.
@@ -63,13 +74,14 @@ globe, tag, bookmark, flag`.
 
 1. Root is always a `Window`.
 2. Choose the shape:
-   - **Multi-page app** (the sidebar items are sections/tabs like General,
-     Account, Notifications): `Window → [Sidebar]` where every item has its own
-     `page`. Each page is a full view — build it exactly like a `Content` body
-     (optional `Toolbar`, a heading `Text`, then `Card`s). No separate `Content`.
-   - **Source list** (sidebar filters one shared view): `Window → [Sidebar,
-     Content]`, items without `page`.
+   - **Multi-page app** (sidebar of sections/tabs like General, Account,
+     Notifications): `Window → [Sidebar]` where **every** item has its own
+     non-empty `page`. Each page is a full, distinct view — build it like a
+     `Content` body (optional `Toolbar`, a heading `Text`, then `Card`s). No
+     separate `Content`. If you list five tabs, you write five real pages.
    - **Single page** (no sidebar): `Window → [Content]`.
+   If you can't fill a tab with real content, don't add the tab. Never leave a
+   sidebar item without a page.
 3. Inside a page / `Content`: an optional `Toolbar` first, then a heading `Text`,
    then the body — grouping related rows/controls in `Card`s. Give each page a
    heading that matches its sidebar item so navigation reads clearly.
@@ -77,7 +89,14 @@ globe, tag, bookmark, flag`.
    `SegmentedControl`s, `TextField`s. The Card lays them out as a macOS grouped
    list (consistent inset, hairline separators between adjacent rows). A bare
    `Text` label directly above a control in a Card reads as that control's label.
-5. Stay restrained. A few well-chosen sections beats a wall of components.
+5. **Keep it small and fast.** The whole tree streams out token by token, so
+   size = wait time. Default to shallow: a page is a heading + one or two cards.
+   Only the `Sidebar` rule is mandatory (every tab → a real page). `detail` and
+   `panels` are OPTIONAL depth — reach for them only when the request is
+   specifically about drilling into an item or switching in-page tabs. Do NOT
+   add a `detail` to every row or `panels` to every control; that balloons the
+   tree and makes generation crawl. One meaningful drill-in beats ten.
+6. Stay restrained. A few well-chosen sections beats a wall of components.
 
 After composing, call `save_page` with a `title`, a one-line `prompt` (the user's
 request restated), and the `tree`.

@@ -1,18 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { Render } from "../Render";
+import type { UINode } from "../types";
 
 // PRIMITIVE: SegmentedControl — pick one of several options; the selected
-// segment floats on a white pill (macOS style).
+// segment floats on a white pill (macOS style). When `panels` is supplied it
+// becomes a real tab switcher: each option owns a panel of content, and picking
+// a segment swaps the content shown below — not just a dead highlight.
 export function SegmentedControl({
   options = [],
   selected = 0,
+  panels,
 }: {
   options?: string[];
   selected?: number;
+  panels?: UINode[][];
 }) {
   const [sel, setSel] = useState(selected);
-  return (
+
+  const control = (
     <div
       style={{
         display: "inline-flex",
@@ -48,6 +55,22 @@ export function SegmentedControl({
           </button>
         );
       })}
+    </div>
+  );
+
+  if (!panels || panels.length === 0) return control;
+
+  // Tabbed mode: control on top, the selected option's panel below. `key={sel}`
+  // resets panel controls when switching tabs (a fresh view each time).
+  const panel = panels[sel] ?? [];
+  return (
+    <div style={{ display: "flex", width: "100%", flexDirection: "column", gap: 16 }}>
+      {control}
+      <div key={sel} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {panel.map((node, i) => (
+          <Render key={i} node={node} />
+        ))}
+      </div>
     </div>
   );
 }

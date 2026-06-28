@@ -1,6 +1,8 @@
 "use client";
 
-import { RiAppleLine, RiSparkling2Line } from "@remixicon/react";
+import Link from "next/link";
+import { RiAppleLine, RiArrowRightUpLine, RiSparkling2Line, RiWindowLine } from "@remixicon/react";
+import type { RecentPage } from "./workspace";
 import { PromptComposer } from "./prompt-composer";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -15,9 +17,11 @@ const EXAMPLES = [
 export function Landing({
   onSend,
   isBusy,
+  recentPages = [],
 }: {
   onSend: (text: string) => void;
   isBusy: boolean;
+  recentPages?: RecentPage[];
 }) {
   return (
     <div className="relative flex min-h-dvh flex-col">
@@ -66,8 +70,53 @@ export function Landing({
               </button>
             ))}
           </div>
+
+          {recentPages.length > 0 ? (
+            <div className="mt-14">
+              <div className="text-label-xs text-muted-foreground mb-3 flex items-center gap-1.5 font-medium">
+                <RiWindowLine className="size-3.5" />
+                Recent designs
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {recentPages.map((page) => (
+                  <Link
+                    key={page.id}
+                    href={`/${page.id}`}
+                    className="group border-border bg-card hover:border-foreground/20 flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-label-sm text-foreground truncate font-medium">
+                        {page.title}
+                      </div>
+                      <div className="text-label-xs text-muted-foreground mt-0.5 truncate">
+                        {page.prompt}
+                      </div>
+                    </div>
+                    <span className="text-label-xs text-muted-foreground shrink-0">
+                      {relativeTime(page.updatedAt)}
+                    </span>
+                    <RiArrowRightUpLine className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
+}
+
+// Compact "3h ago" / "2d ago" label for the recent list.
+function relativeTime(date: Date): string {
+  const d = date instanceof Date ? date : new Date(date);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

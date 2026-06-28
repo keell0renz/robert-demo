@@ -27,13 +27,13 @@ const icon = z.enum(ICONS);
 const sidebarItem = z.object({
   label: z.string(),
   icon: icon.optional(),
-  // When present, this item is a navigation destination — selecting it in the
-  // sidebar swaps the content area to this page (a list of nodes, same shape as
-  // a Content's children). Give EVERY item a `page` to build a multi-page app
-  // (System Settings, a mail client's folders). Omit `page` on all items for a
-  // source-list sidebar with one shared Content pane (the static idiom).
+  // MANDATORY. Every sidebar item is a navigation destination and MUST carry its
+  // own page — the content shown when the item is selected (a non-empty list of
+  // nodes, same shape as a Content's children). There is no such thing as a tab
+  // without a page: a sidebar item with no `page` is a dead tab and is rejected
+  // here at validation time, forcing the model to actually build every section.
   // `z.lazy` defers the recursive reference to UINodeSchema (declared below).
-  page: z.array(z.lazy((): z.ZodType<UINode> => UINodeSchema)).optional(),
+  page: z.array(z.lazy((): z.ZodType<UINode> => UINodeSchema)).min(1),
 });
 
 // Each node type declares exactly the props it accepts. Flat, semantic,
@@ -94,6 +94,12 @@ export const UINodeSchema: z.ZodType<UINode> = z.lazy(() =>
         icon: icon.optional(),
         badge: z.string().optional(),
         accessory: z.enum(["chevron", "check", "none"]).optional(),
+        // Optional drill-in. When a row represents something you'd open (a
+        // device, an account, a settings sub-screen), give it a `detail`: the
+        // page shown when the row is tapped, with an automatic back button.
+        // Pair it with `accessory: "chevron"`. A chevron row that opens a real
+        // detail feels alive; a chevron with nothing behind it is a dead end.
+        detail: z.array(z.lazy((): z.ZodType<UINode> => UINodeSchema)).optional(),
       }),
     }),
     z.object({
@@ -117,6 +123,13 @@ export const UINodeSchema: z.ZodType<UINode> = z.lazy(() =>
       props: z.object({
         options: z.array(z.string()).min(2),
         selected: z.number().int().min(0).optional(),
+        // Optional sub-tabs: one content panel per option. When given, switching
+        // a segment swaps the panel below it (a real tab strip, not a dead
+        // highlight). `panels[i]` is the content for `options[i]` — provide a
+        // panel for EVERY option, in the same order. Use this for in-page tabs
+        // (e.g. "Known | All Networks", "Day | Week | Month"). Omit it when the
+        // segmented control is just a filter chip inside a Toolbar.
+        panels: z.array(z.array(z.lazy((): z.ZodType<UINode> => UINodeSchema))).optional(),
       }),
     }),
     z.object({
