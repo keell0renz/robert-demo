@@ -47,3 +47,48 @@ export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type App = typeof apps.$inferSelect;
 export type NewApp = typeof apps.$inferInsert;
+
+// ── Path B (the React-code demo) ────────────────────────────────────────────
+// A completely separate world from Path A above. Where Path A persists a closed
+// JSON vocabulary (`apps.tree`) that a safe interpreter walks, Path B persists
+// the ACTUAL React/TSX SOURCE the model writes and the browser compiles + evals
+// it at runtime. Different tables so the two demos never touch each other.
+
+// One Path-B desktop workspace. Unlike eve's durable session, the React demo
+// drives chat through the Vercel AI SDK, so we just stash the UIMessage[] JSON
+// here to rehydrate the conversation when /code/{id} is reopened.
+export const codeSessions = pgTable("code_sessions", {
+  // A client-generated workspace id (uuid) — also the /code/{id} URL.
+  id: text("id").primaryKey(),
+  // The AI SDK UIMessage[] log, persisted so the chat replays on reload.
+  messages: jsonb("messages").$type<unknown[]>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// One generated React app on a Path-B desktop: its TSX SOURCE (not a spec) plus
+// the same dock metadata as Path A. The client compiles `code` with Sucrase and
+// evaluates it — unsafe by construction, which is the entire point of the demo.
+export const codeApps = pgTable(
+  "code_apps",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: text("session_id").notNull(),
+    title: text("title").notNull().default("Untitled"),
+    // Single A–Z dock-icon fallback, exactly like `apps.letter`.
+    letter: text("letter").notNull().default("A"),
+    // The request that created the app (kept for listings/history).
+    prompt: text("prompt").notNull(),
+    // The complete React/TSX component source the model wrote. Compiled and
+    // eval'd in the browser to render the app — stored verbatim.
+    code: text("code").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("code_apps_session_idx").on(t.sessionId)],
+);
+
+export type CodeSession = typeof codeSessions.$inferSelect;
+export type NewCodeSession = typeof codeSessions.$inferInsert;
+export type CodeApp = typeof codeApps.$inferSelect;
+export type NewCodeApp = typeof codeApps.$inferInsert;

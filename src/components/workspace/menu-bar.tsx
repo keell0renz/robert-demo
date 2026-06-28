@@ -26,10 +26,16 @@ export function MenuBar({
   appName,
   wallpaperId,
   onWallpaper,
+  engine = "json",
+  newHref = "/",
 }: {
   appName: string;
   wallpaperId: string;
   onWallpaper: (id: string) => void;
+  // Which generation engine this desktop runs. Drives the "New" target and the
+  // JSON⇄React switcher pill. Defaults keep the original (Path A) desktop intact.
+  engine?: "json" | "react";
+  newHref?: string;
 }) {
   const [bgOpen, setBgOpen] = useState(false);
 
@@ -70,7 +76,9 @@ export function MenuBar({
 
       {/* Right: workspace controls as menu-bar extras + the clock. */}
       <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <MenuButton onClick={() => window.location.assign("/")}>
+        <EngineSwitch engine={engine} />
+        <div style={{ width: 0.5, height: 14, margin: "0 4px", background: "var(--os-hairline)" }} />
+        <MenuButton onClick={() => window.location.assign(newHref)}>
           <RiAddLine size={14} style={{ marginRight: 4 }} />
           New
         </MenuButton>
@@ -91,6 +99,57 @@ export function MenuBar({
         />
       ) : null}
     </div>
+  );
+}
+
+// The JSON⇄React engine switcher — the one control that ties the two demos
+// together. A tiny segmented pill in the menu bar; the inactive half is a link
+// to the other desktop. This is what makes the two versions read as "side by
+// side": you flip between the spec-driven and the code-driven engine in place.
+function EngineSwitch({ engine }: { engine: "json" | "react" }) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        height: 18,
+        padding: 1,
+        borderRadius: 7,
+        background: "var(--os-fill-soft)",
+        fontSize: 11,
+        fontWeight: 600,
+      }}
+    >
+      <EngineSeg label="JSON" href="/" active={engine === "json"} />
+      <EngineSeg label="React" href="/code" active={engine === "react"} />
+    </div>
+  );
+}
+
+function EngineSeg({ label, href, active }: { label: string; href: string; active: boolean }) {
+  return (
+    <a
+      href={active ? undefined : href}
+      title={
+        label === "JSON"
+          ? "Spec engine: AI emits a closed JSON vocabulary, rendered by a safe interpreter"
+          : "Code engine: AI writes real React, compiled & evaluated in your browser"
+      }
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        height: 16,
+        padding: "0 8px",
+        borderRadius: 6,
+        textDecoration: "none",
+        cursor: active ? "default" : "pointer",
+        color: active ? "var(--os-text)" : "var(--os-text-secondary)",
+        background: active ? "var(--os-control-bg)" : "transparent",
+        boxShadow: active ? "var(--os-shadow-button)" : "none",
+      }}
+    >
+      {label}
+    </a>
   );
 }
 

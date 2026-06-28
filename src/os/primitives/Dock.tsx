@@ -24,6 +24,10 @@ type App = {
   // A generated icon image to show on the tile (falls back to letter/glyph on
   // error or while missing).
   iconUrl?: string | null;
+  // Whether a real icon is expected (and therefore the tile should shimmer while
+  // it's still missing). Path A sets this implicitly (an icon is generated after
+  // the app). Path B never makes image icons, so it shows the letter at once.
+  expectIcon?: boolean;
 };
 
 // macOS-ish app set. Gradients are multi-stop and vivid so each tile reads with
@@ -65,6 +69,9 @@ export type DockApp = {
   running: boolean;
   onClick: () => void;
   iconUrl?: string | null;
+  // See App.expectIcon — defaults to true so existing (Path A) callers are
+  // unchanged; the React demo passes false to skip the icon shimmer.
+  expectIcon?: boolean;
 };
 
 // Vivid macOS-y tile gradients. We can't generate real icons yet, so each app is
@@ -138,6 +145,7 @@ export function Dock({
                   grad: gradForLetter(app.letter),
                   letter: app.letter.toUpperCase(),
                   iconUrl: app.iconUrl,
+                  expectIcon: app.expectIcon,
                   fg: "#ffffff",
                   dot: app.running,
                 }}
@@ -190,7 +198,10 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
   const iconReady = showImg && imgLoaded;
   // A generated app (it has a letter) shows a skeleton shimmer until its icon is
   // actually visible — while it's being generated, and while the image loads.
-  const showSkeleton = Boolean(app.letter) && !iconReady && !imgError;
+  // Apps that never make an image icon (`expectIcon: false`) skip straight to
+  // the letter instead of shimmering forever.
+  const expectIcon = app.expectIcon ?? true;
+  const showSkeleton = expectIcon && Boolean(app.letter) && !iconReady && !imgError;
 
   return (
     <div

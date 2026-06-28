@@ -15,6 +15,13 @@
       "when": 1782653809091,
       "tag": "0001_lovely_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782659604209,
+      "tag": "0002_daffy_butterfly",
+      "breakpoints": true
     }
   ]
 }
