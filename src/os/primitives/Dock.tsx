@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Compass, Mail, MessageCircle, Image as ImageIcon, MapPin, Calendar,
   Music, Settings, Terminal, NotebookPen, Camera, Phone, Sparkles,
@@ -171,13 +171,18 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
   const [hover, setHover] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   // A new icon URL (first generation, or a regeneration) is a fresh attempt —
-  // clear the previous load/error state so the new image gets a chance.
+  // clear the previous error. For `loaded`: if the image is ALREADY cached and
+  // complete (the usual case after a reload), the browser fires no onLoad event,
+  // so detect completeness directly — otherwise the skeleton would stick forever.
+  /* eslint-disable react-hooks/set-state-in-effect -- reset/sync on iconUrl change */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on iconUrl change
     setImgError(false);
-    setImgLoaded(false);
+    const el = imgRef.current;
+    setImgLoaded(Boolean(el && el.complete && el.naturalWidth > 0));
   }, [app.iconUrl]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   const Glyph = app.glyph;
   const fg = app.fg ?? "#ffffff";
   const radius = SIZE * 0.235;
@@ -247,6 +252,7 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
           {showImg ? (
             // eslint-disable-next-line @next/next/no-img-element -- data/api PNG, not a Next asset
             <img
+              ref={imgRef}
               src={app.iconUrl ?? undefined}
               alt={app.name}
               width={SIZE}
