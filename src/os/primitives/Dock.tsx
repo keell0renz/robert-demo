@@ -170,14 +170,22 @@ function Divider() {
 function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
   const [hover, setHover] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   // A new icon URL (first generation, or a regeneration) is a fresh attempt —
-  // clear any previous load error so the new image gets a chance.
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on iconUrl change
-  useEffect(() => setImgError(false), [app.iconUrl]);
+  // clear the previous load/error state so the new image gets a chance.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on iconUrl change
+    setImgError(false);
+    setImgLoaded(false);
+  }, [app.iconUrl]);
   const Glyph = app.glyph;
   const fg = app.fg ?? "#ffffff";
   const radius = SIZE * 0.235;
   const showImg = Boolean(app.iconUrl) && !imgError;
+  const iconReady = showImg && imgLoaded;
+  // A generated app (it has a letter) shows a skeleton shimmer until its icon is
+  // actually visible — while it's being generated, and while the image loads.
+  const showSkeleton = Boolean(app.letter) && !iconReady && !imgError;
 
   return (
     <div
@@ -243,10 +251,14 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
               alt={app.name}
               width={SIZE}
               height={SIZE}
+              onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : null}
+
+          {/* Skeleton shimmer while a generated app's icon is being made/loaded. */}
+          {showSkeleton ? <div className="os-icon-skeleton" /> : null}
 
           {/* Glossy top-half highlight — the convex sheen real icons carry. */}
           <div
@@ -260,8 +272,9 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
             }}
           />
 
-          {/* Fallback content shown until/unless a real icon image loads. */}
-          {!showImg && app.letter ? (
+          {/* Letter only as a last resort if a real icon failed to load. A
+              decorative app (no letter) falls back to its glyph. */}
+          {app.letter && imgError ? (
             <span
               style={{
                 position: "relative",
@@ -275,7 +288,7 @@ function DockIcon({ app, onClick }: { app: App; onClick?: () => void }) {
             >
               {app.letter}
             </span>
-          ) : !showImg ? (
+          ) : !app.letter && !showImg ? (
             <Glyph
               size={SIZE * 0.52}
               strokeWidth={app.fill ? 1.5 : 2.25}

@@ -197,9 +197,43 @@
 .fade-up {
   animation: landing-fade-up 0.7s ease-out both;
 }
+
+/* Dock icon placeholder while a generated icon is being made / loaded: a grey
+   tile with a sweeping shine (classic skeleton shimmer). */
+@keyframes os-icon-skeleton {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.os-icon-skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Opaque neutral grey so the colourful tile underneath reads as "loading". */
+  background: #9a9aa2;
+}
+.os-icon-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  animation: os-icon-skeleton 1.3s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fade-up,
   .chat-shimmer-text {
+    animation: none !important;
+  }
+  .os-icon-skeleton::after {
     animation: none !important;
   }
 }
