@@ -51,3 +51,4 @@ next-env.d.ts
 
 # eve durable runtime store (per-machine run/step/event/stream journal)
 /.workflow-data
+.gstack/

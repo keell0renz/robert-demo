@@ -20,7 +20,14 @@ export function Landing({
   isBusy: boolean;
 }) {
   return (
-    <div className="bg-grid relative flex min-h-dvh flex-col">
+    <div className="relative flex min-h-dvh flex-col">
+      {/* Decorative grid background. The fade mask lives on this layer ONLY —
+          putting it on a content wrapper would mask the UI itself (the composer
+          and chips would render half-transparent). */}
+      <div
+        aria-hidden
+        className="bg-grid bg-grid-fade pointer-events-none absolute inset-0 -z-10"
+      />
       <header className="flex items-center justify-between px-5 py-4">
         <div className="text-label-sm text-foreground flex items-center gap-2 font-medium">
           <RiAppleLine className="size-[18px]" />
@@ -29,7 +36,7 @@ export function Landing({
         <ThemeToggle />
       </header>
 
-      <div className="bg-grid-fade flex flex-1 items-center justify-center px-6 pb-24">
+      <div className="flex flex-1 items-center justify-center px-6 pb-24">
         <div className="fade-up w-full max-w-2xl">
           <div className="text-label-xs text-muted-foreground bg-muted ring-border mx-auto mb-6 inline-flex w-auto items-center gap-1.5 rounded-full px-3 py-1 ring-1">
             <RiSparkling2Line className="text-primary size-3.5" />
